@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Society Notices - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="notices-container">
+    <div class="notices-header">
+        <h1>Society Notices</h1>
+        <p>Stay updated with the latest announcements</p>
+    </div>
+
+    {% if notices %}
+    <div class="notices-list">
+        {% for notice in notices %}
+        <div class="notice-card priority-{{ notice.priority|lower }}">
+            {% if notice.image %}
+                <img src="{{ notice.image.url }}" alt="{{ notice.title }}" class="notice-image">
+            {% endif %}
+            
+            <div class="notice-content">
+                <div class="notice-header">
+                    <h2>{{ notice.title }}</h2>
+                    <span class="priority-badge priority-{{ notice.priority|lower }}">
+                        {{ notice.priority }}
+                    </span>
+                </div>
+
+                <div class="notice-meta">
+                    <span>📅 {{ notice.posted_date|date:"d M, Y" }}</span>
+                    {% if notice.expiry_date %}
+                        <span>⏰ Expires: {{ notice.expiry_date|date:"d M, Y" }}</span>
+                    {% endif %}
+                    <span>👤 {{ notice.posted_by.get_full_name }}</span>
+                </div>
+
+                <p class="notice-excerpt">{{ notice.content|truncatewords:50 }}</p>
+
+                <a href="{% url 'notice_detail' notice.pk %}" class="btn-read-more">Read Full Notice</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📢</div>
+        <h2>No Notices Yet</h2>
+        <p>Check back later for society announcements</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.notices-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.notices-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.notices-header h1 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.notices-header p {
+    color: var(--text-light);
+    font-size: 1.1rem;
+}
+
+.notices-list {
+    display: grid;
+    gap: 25px;
+}
+
+.notice-card {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr;
+    transition: var(--transition);
+    border-left: 5px solid var(--border-color);
+}
+
+.notice-card.priority-urgent {
+    border-left-color: #dc2626;
+}
+
+.notice-card.priority-high {
+    border-left-color: #f97316;
+}
+
+.notice-card.priority-medium {
+    border-left-color: #f59e0b;
+}
+
+.notice-card.priority-low {
+    border-left-color: #10b981;
+}
+
+.notice-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.notice-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.notice-content {
+    padding: 25px;
+}
+
+.notice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.notice-header h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.3rem;
+}
+
+.priority-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.priority-urgent {
+    background: rgba(220, 38, 38, 0.2);
+    color: #dc2626;
+}
+
+.priority-high {
+    background: rgba(249, 115, 22, 0.2);
+    color: #ea580c;
+}
+
+.priority-medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: #d97706;
+}
+
+.priority-low {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.notice-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.notice-excerpt {
+    color: var(--text-light);
+    line-height: 1.6;
+    margin: 15px 0;
+}
+
+.btn-read-more {
+    display: inline-block;
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-read-more:hover {
+    background: var(--primary-dark);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.empty-state h2 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.empty-state p {
+    color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+    .notice-header {
+        flex-direction: column;
+    }
+
+    .priority-badge {
+        align-self: flex-start;
+    }
+}
+</style>
+{% endblock %}

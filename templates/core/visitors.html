@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}Visitor Log - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="visitors-container">
+    <div class="visitors-header">
+        <h1>Visitor Log</h1>
+        <p>Track all visitors to your unit</p>
+    </div>
+
+    {% if visitors %}
+    <div class="visitors-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Visitor Name</th>
+                    <th>Entry Time</th>
+                    <th>Exit Time</th>
+                    <th>Purpose</th>
+                    <th>Vehicle No</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for visitor in visitors %}
+                <tr>
+                    <td data-label="Visitor">
+                        <div class="visitor-info">
+                            <strong>{{ visitor.name }}</strong>
+                            <small>{{ visitor.phone }}</small>
+                        </div>
+                    </td>
+                    <td data-label="Entry Time">{{ visitor.in_time|date:"d M, Y H:i" }}</td>
+                    <td data-label="Exit Time">
+                        {% if visitor.out_time %}
+                            {{ visitor.out_time|date:"d M, Y H:i" }}
+                        {% else %}
+                            <span class="text-ongoing">Still inside</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Purpose">{{ visitor.purpose }}</td>
+                    <td data-label="Vehicle">{{ visitor.vehicle_no|default:"—" }}</td>
+                    <td data-label="Status">
+                        <span class="status-badge status-{{ visitor.status|lower }}">
+                            {% if visitor.status == 'IN' %}Entered
+                            {% else %}Exited{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <h2>No Visitor Log Found</h2>
+        <p>You don't have any visitor history yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.visitors-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.visitors-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.visitors-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.visitors-header p {
+    color: var(--text-light);
+}
+
+.visitors-table {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: var(--background-color);
+}
+
+th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--border-color);
+}
+
+td {
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-light);
+}
+
+tbody tr:hover {
+    background: var(--background-color);
+}
+
+.visitor-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.visitor-info strong {
+    color: var(--text-color);
+}
+
+.visitor-info small {
+    color: var(--text-light);
+    font-size: 0.85rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-in {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.status-out {
+    background: rgba(107, 114, 128, 0.2);
+    color: #4b5563;
+}
+
+.text-ongoing {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.empty-state h2 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.empty-state p {
+    color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    th {
+        display: none;
+    }
+
+    tr {
+        margin-bottom: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    td {
+        padding: 12px;
+        padding-left: 50%;
+        position: relative;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 12px;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+}
+</style>
+{% endblock %}

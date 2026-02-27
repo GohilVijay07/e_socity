@@ -1,0 +1,251 @@
+from django.db import models
+from django.core.exceptions import ValidationError
+from core.models import User
+
+# 2. Unit/Flat Details
+class Unit(models.Model):
+    """Model for storing unit/flat information"""
+    UNIT_TYPES = [
+        ('1BHK', '1 BHK'),
+        ('2BHK', '2 BHK'),
+        ('3BHK', '3 BHK'),
+        ('4BHK', '4 BHK'),
+        ('SHOP', 'Shop'),
+        ('OFFICE', 'Office'),
+    ]
+    
+    unit_no = models.CharField(max_length=10, unique=True)
+    wing = models.CharField(max_length=5)
+    floor = models.IntegerField()
+    unit_type = models.CharField(max_length=10, choices=UNIT_TYPES)
+    sq_ft = models.DecimalField(max_digits=7, decimal_places=2)
+    is_occupied = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['wing', 'floor', 'unit_no']
+    
+    def __str__(self):
+        return f"{self.wing}-{self.unit_no}"
+
+
+# 3. Resident Profile
+class Resident(models.Model):
+    """Model for storing resident/owner information"""
+    STATUS_CHOICES = [
+        ('OWNER', 'Owner'),
+        ('TENANT', 'Tenant'),
+        ('FAMILY_MEMBER', 'Family Member'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='resident_profile')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='residents')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    vehicle_no = models.CharField(max_length=20, blank=True, null=True)
+    member_count = models.IntegerField(default=1)
+    move_in_date = models.DateField()
+    move_out_date = models.DateField(blank=True, null=True)
+    emergency_contact = models.CharField(max_length=100, blank=True, null=True)
+    emergency_phone = models.CharField(max_length=15, blank=True, null=True)
+    occupation = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        ordering = ['unit']
+    
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.unit}"
+
+
+# 4. Maintenance Billing
+class MaintenanceBill(models.Model):
+    """Model for maintenance billing"""
+    PAYMENT_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('PAID', 'Paid'),
+        ('OVERDUE', 'Overdue'),
+        ('PARTIAL', 'Partial Payment'),
+    ]
+    
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='maintenance_bills')
+    billing_month = models.DateField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    penalty = models.DecimalField(max_digits=7, decimal_places=2, default=0.00)
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
+    payment_date = models.DateTimeField(null=True, blank=True)
+    payment_mode = models.CharField(max_length=50, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-billing_month']
+        unique_together = ['unit', 'billing_month']
+    
+    def __str__(self):
+        return f"{self.unit} - {self.billing_month.strftime('%B %Y')}"
+
+
+# 5. Visitor Tracking
+class Visitor(models.Model):
+    """Model for tracking visitors"""
+    STATUS_CHOICES = [
+        ('IN', 'Entered'),
+        ('OUT', 'Exited'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15)
+    visit_unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='visitors')
+    host = models.ForeignKey(Resident, on_delete=models.SET_NULL, null=True, blank=True)
+    purpose = models.CharField(max_length=200)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='IN')
+    in_time = models.DateTimeField(auto_now_add=True)
+    out_time = models.DateTimeField(null=True, blank=True)
+    vehicle_no = models.CharField(max_length=20, blank=True, null=True)
+
+    class Meta:
+        ordering = ['-in_time']
+    
+    def __str__(self):
+        return f"{self.name} - {self.visit_unit}"
+
+
+# 6. Complaint/Issue Management
+class Complaint(models.Model):
+    """Model for managing complaints and issues"""
+    CATEGORY_CHOICES = [
+        ('MAINTENANCE', 'Maintenance Issue'),
+        ('WATER', 'Water Problem'),
+        ('ELECTRICITY', 'Electricity Problem'),
+        ('GAS', 'Gas Problem'),
+        ('NOISE', 'Noise Complaint'),
+        ('PARKING', 'Parking Issue'),
+        ('SECURITY', 'Security Issue'),
+        ('OTHER', 'Other'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('OPEN', 'Open'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('RESOLVED', 'Resolved'),
+        ('CLOSED', 'Closed'),
+    ]
+    
+    raised_by = models.ForeignKey(Resident, on_delete=models.CASCADE, related_name='complaints')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='OPEN')
+    priority = models.IntegerField(default=1)  # 1=Low, 2=Medium, 3=High
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_date = models.DateTimeField(null=True, blank=True)
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_complaints')
+
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_status_display()}"
+
+
+# 7. Amenities/Facilities
+class Amenity(models.Model):
+    """Model for society amenities"""
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    is_available = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='amenities/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "Amenities"
+    
+    def __str__(self):
+        return self.name
+
+
+# 8. Amenity Booking
+class AmenityBooking(models.Model):
+    """Model for amenity reservations"""
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('CONFIRMED', 'Confirmed'),
+        ('CANCELLED', 'Cancelled'),
+        ('COMPLETED', 'Completed'),
+    ]
+    
+    resident = models.ForeignKey(Resident, on_delete=models.CASCADE)
+    amenity = models.ForeignKey(Amenity, on_delete=models.CASCADE, related_name='bookings')
+    booking_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    purpose = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['booking_date']
+    
+    def __str__(self):
+        return f"{self.resident.user.get_full_name()} - {self.amenity.name} - {self.booking_date}"
+
+
+# 9. Notice/Announcement
+class Notice(models.Model):
+    """Model for society notices and announcements"""
+    PRIORITY_CHOICES = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
+    posted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    posted_date = models.DateTimeField(auto_now_add=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    image = models.ImageField(upload_to='notices/', blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-posted_date']
+        verbose_name_plural = "Notices"
+    
+    def __str__(self):
+        return self.title
+
+
+# 10. Payment/Transaction
+class Transaction(models.Model):
+    """Model for tracking payments and transactions"""
+    TRANSACTION_TYPE_CHOICES = [
+        ('MAINTENANCE', 'Maintenance Bill'),
+        ('OTHER_CHARGE', 'Other Charges'),
+        ('REFUND', 'Refund'),
+        ('AMENITY_BOOKING', 'Amenity Booking'),
+    ]
+    
+    PAYMENT_MODE_CHOICES = [
+        ('CASH', 'Cash'),
+        ('CHEQUE', 'Cheque'),
+        ('ONLINE', 'Online Transfer'),
+        ('UPI', 'UPI'),
+    ]
+    
+    bill = models.ForeignKey(MaintenanceBill, on_delete=models.SET_NULL, null=True, blank=True)
+    resident = models.ForeignKey(Resident, on_delete=models.CASCADE, related_name='transactions')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
+    payment_mode = models.CharField(max_length=20, choices=PAYMENT_MODE_CHOICES)
+    reference_no = models.CharField(max_length=100, unique=True)
+    transaction_date = models.DateTimeField(auto_now_add=True)
+    remarks = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-transaction_date']
+    
+    def __str__(self):
+        return f"{self.resident.user.get_full_name()} - {self.get_transaction_type_display()} - {self.amount}"

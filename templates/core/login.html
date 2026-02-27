@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="signup-container">
+    <div class="signup-info">
+        <p class="eyebrow">Welcome Back</p>
+        <h2>Access Your Community Portal</h2>
+        <p class="lead">Log in to manage bills, track complaints, book amenities, and stay connected with your society.</p>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <span class="stat-value">24/7</span>
+                <span class="stat-label">Access</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">100%</span>
+                <span class="stat-label">Secure</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">1-Click</span>
+                <span class="stat-label">Quick Pay</span>
+            </div>
+        </div>
+        
+        <ul class="features-list">
+            <li>View and pay maintenance bills instantly</li>
+            <li>Track complaint status in real-time</li>
+            <li>Book amenities with live availability</li>
+            <li>Check visitor logs and approvals</li>
+            <li>Stay updated with society notices</li>
+            <li>Manage your profile and preferences</li>
+        </ul>
+    </div>
+    
+    <div class="signup-form-container">
+        <div class="form-header">
+            <h3>Sign In</h3>
+            <p class="form-subtitle">Enter your credentials to access your account</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Email or Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="errorlist">
+                        {% for error in form.username.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Password</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <div class="errorlist">
+                        {% for error in form.password.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="remember" id="remember">
+                    <span>Remember me</span>
+                </label>
+                <a href="#" class="forgot-password">Forgot password?</a>
+            </div>
+            
+            <button type="submit" class="btn-submit">Sign In</button>
+            <p class="form-note">Secure login with encrypted credentials.</p>
+            
+            <div class="form-footer">
+                Don't have an account? <a href="{% url 'signup' %}">Sign Up</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% load static %}
+<nav class="navbar">
+    <div class="navbar-container">
+        <div class="navbar-logo">
+            <a href="/">
+                <span class="logo-icon">🏘️</span>
+                <span class="logo-text">eSociety</span>
+            </a>
+        </div>
+        
+        <button class="menu-toggle" id="mobile-menu" aria-label="Toggle menu" aria-controls="nav-menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        
+        <ul class="nav-menu" id="nav-menu">
+            <li class="nav-item">
+                <a href="/" class="nav-link">Home</a>
+            </li>
+            
+            {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'profile_view' %}" class="nav-link">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'bills_view' %}" class="nav-link">Bills</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'complaints_view' %}" class="nav-link">Complaints</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'notices_view' %}" class="nav-link">Notices</a>
+                </li>
+                
+                {% if user.is_staff %}
+                <li class="nav-item">
+                    <a href="/admin/" class="nav-link nav-link-admin">Admin Panel</a>
+                </li>
+                {% endif %}
+
+                <li class="nav-item">
+                    <a href="{% url 'logout' %}" class="nav-link nav-link-btn">Logout</a>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a href="#about" class="nav-link">About</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#features" class="nav-link">Services</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#contact" class="nav-link">Contact</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'signup' %}" class="nav-link nav-link-btn">Sign Up</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'login' %}" class="nav-link nav-link-btn nav-link-login">Login</a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.getElementById('mobile-menu');
+        const navMenu = document.getElementById('nav-menu');
+        
+        if (menuToggle && navMenu) {
+            menuToggle.addEventListener('click', function() {
+                navMenu.classList.toggle('active');
+                menuToggle.classList.toggle('active');
+                menuToggle.setAttribute('aria-expanded', menuToggle.classList.contains('active'));
+            });
+            
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        navMenu.classList.remove('active');
+                        menuToggle.classList.remove('active');
+                        menuToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        }
+    });
+</script>

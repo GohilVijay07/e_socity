@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="signup-container">
+    <div class="signup-info">
+        <p class="eyebrow">Smart Society Suite</p>
+        <h2>Manage your community with clarity.</h2>
+        <p class="lead">A focused platform for residents and committees to stay aligned on billing, issues, and daily operations without the noise.</p>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <span class="stat-value">24/7</span>
+                <span class="stat-label">Support-ready</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">100%</span>
+                <span class="stat-label">Data ownership</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">1</span>
+                <span class="stat-label">Unified dashboard</span>
+            </div>
+        </div>
+        
+        <ul class="features-list">
+            <li>Maintenance billing with clear histories</li>
+            <li>Fast complaints, tracking, and closure</li>
+            <li>Visitor logs and gate security notes</li>
+            <li>Amenities booking without conflicts</li>
+            <li>Notices that actually get read</li>
+            <li>Role-based access for your team</li>
+        </ul>
+    </div>
+    
+    <div class="signup-form-container">
+        <div class="form-header">
+            <h3>Create Your Account</h3>
+            <p class="form-subtitle">Get started in under a minute. No credit card required.</p>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">Email Address</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="errorlist">
+                        {% for error in form.email.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.role.id_for_label }}">Your Role</label>
+                {{ form.role }}
+                {% if form.role.errors %}
+                    <div class="errorlist">
+                        {% for error in form.role.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}">Password</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                    <div class="errorlist">
+                        {% for error in form.password1.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.password1.help_text %}
+                    <small class="helptext">{{ form.password1.help_text|safe }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                    <div class="errorlist">
+                        {% for error in form.password2.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if form.password2.help_text %}
+                    <small class="helptext">{{ form.password2.help_text|safe }}</small>
+                {% endif %}
+            </div>
+            
+            <button type="submit" class="btn-submit">Create Account</button>
+            <p class="form-note">By signing up, you agree to the community guidelines.</p>
+            
+            <div class="form-footer">
+                Already have an account? <a href="{% url 'login' %}">Sign In</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

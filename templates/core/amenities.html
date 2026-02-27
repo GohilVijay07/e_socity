@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Amenities - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="amenities-container">
+    <div class="amenities-header">
+        <h1>Society Amenities</h1>
+        <p>Book our facilities for your events and activities</p>
+    </div>
+
+    {% if amenities %}
+    <div class="amenities-grid">
+        {% for amenity in amenities %}
+        <div class="amenity-card">
+            {% if amenity.image %}
+                <img src="{{ amenity.image.url }}" alt="{{ amenity.name }}" class="amenity-image">
+            {% else %}
+                <div class="amenity-placeholder">🏢</div>
+            {% endif %}
+            
+            <div class="amenity-content">
+                <h3>{{ amenity.name }}</h3>
+                <p>{{ amenity.description }}</p>
+                
+                <div class="amenity-footer">
+                    <span class="status-badge available">Available</span>
+                    <a href="{% url 'amenity_book' %}?amenity={{ amenity.pk }}" class="btn-book">Book Now</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🏢</div>
+        <h2>No Amenities Available</h2>
+        <p>Check back later for available amenities</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.amenities-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.amenities-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.amenities-header h1 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.amenities-header p {
+    color: var(--text-light);
+    font-size: 1.1rem;
+}
+
+.amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.amenity-card {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+}
+
+.amenity-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.amenity-image,
+.amenity-placeholder {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background: var(--background-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+}
+
+.amenity-content {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.amenity-content h3 {
+    margin: 0 0 10px 0;
+    color: var(--text-color);
+    font-size: 1.2rem;
+}
+
+.amenity-content p {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    flex: 1;
+}
+
+.amenity-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.btn-book {
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-book:hover {
+    background: var(--primary-dark);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.empty-state h2 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.empty-state p {
+    color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+    .amenities-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

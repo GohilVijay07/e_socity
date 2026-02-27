@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}File a Complaint - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="complaint-form-container">
+    <div class="form-wrapper">
+        <div class="form-header">
+            <h1>File a Complaint</h1>
+            <p>Describe your issue and we'll resolve it quickly</p>
+        </div>
+
+        <form method="post" class="complaint-form">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.category.id_for_label }}">Category *</label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <div class="errorlist">
+                        {% for error in form.category.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}">Title *</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                    <div class="errorlist">
+                        {% for error in form.title.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">Description *</label>
+                {{ form.description }}
+                <small class="helptext">Provide as much detail as possible to help us resolve your issue faster</small>
+                {% if form.description.errors %}
+                    <div class="errorlist">
+                        {% for error in form.description.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.priority.id_for_label }}">Priority Level *</label>
+                {{ form.priority }}
+                {% if form.priority.errors %}
+                    <div class="errorlist">
+                        {% for error in form.priority.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-submit">Submit Complaint</button>
+                <a href="{% url 'complaints_view' %}" class="btn-cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.complaint-form-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.form-wrapper {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.form-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.form-header p {
+    color: var(--text-light);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-submit {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(15, 118, 110, 0.3);
+}
+
+.btn-cancel {
+    flex: 0.5;
+    padding: 14px;
+    background: var(--border-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+}
+
+.btn-cancel:hover {
+    background: var(--text-light);
+    color: white;
+}
+</style>
+{% endblock %}

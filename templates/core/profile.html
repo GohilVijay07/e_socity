@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>My Profile</h1>
+        <a href="{% url 'profile_edit' %}" class="btn-edit">Edit Profile</a>
+    </div>
+
+    <div class="profile-content">
+        <div class="profile-card">
+            <div class="profile-pic">
+                {% if user.profile_image %}
+                    <img src="{{ user.profile_image.url }}" alt="{{ user.username }}">
+                {% else %}
+                    <div class="profile-placeholder">
+                        <span class="icon">👤</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="profile-info">
+                <div class="info-grid">
+                    <div class="info-row">
+                        <label>Full Name:</label>
+                        <span>{{ user.get_full_name|default:"Not set" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>Email:</label>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>Username:</label>
+                        <span>{{ user.username }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>Phone:</label>
+                        <span>{{ user.phone|default:"Not provided" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>Date of Birth:</label>
+                        <span>{{ user.date_of_birth|date:"d M, Y"|default:"Not provided" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>Member Since:</label>
+                        <span>{{ user.date_joined|date:"d M, Y" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <label>Role:</label>
+                        <span class="role-badge">{{ user.get_role_display }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if resident %}
+        <div class="resident-info-card">
+            <h2>Resident Information</h2>
+            <div class="info-grid">
+                <div class="info-row">
+                    <label>Unit:</label>
+                    <span>{{ resident.unit }}</span>
+                </div>
+                <div class="info-row">
+                    <label>Status:</label>
+                    <span>{{ resident.get_status_display }}</span>
+                </div>
+                <div class="info-row">
+                    <label>Move-in Date:</label>
+                    <span>{{ resident.move_in_date|date:"d M, Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <label>Member Count:</label>
+                    <span>{{ resident.member_count }}</span>
+                </div>
+                <div class="info-row">
+                    <label>Vehicle No:</label>
+                    <span>{{ resident.vehicle_no|default:"Not provided" }}</span>
+                </div>
+                <div class="info-row">
+                    <label>Occupation:</label>
+                    <span>{{ resident.occupation|default:"Not provided" }}</span>
+                </div>
+                <div class="info-row">
+                    <label>Emergency Contact:</label>
+                    <span>{{ resident.emergency_contact|default:"Not provided" }}</span>
+                </div>
+                <div class="info-row">
+                    <label>Emergency Phone:</label>
+                    <span>{{ resident.emergency_phone|default:"Not provided" }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="quick-links">
+            <h2>Quick Links</h2>
+            <div class="links-grid">
+                <a href="{% url 'bills_view' %}" class="quick-link">
+                    <span class="icon">💳</span>
+                    <span>View Bills</span>
+                </a>
+                <a href="{% url 'complaints_view' %}" class="quick-link">
+                    <span class="icon">📝</span>
+                    <span>My Complaints</span>
+                </a>
+                <a href="{% url 'bookings_view' %}" class="quick-link">
+                    <span class="icon">📋</span>
+                    <span>My Bookings</span>
+                </a>
+                <a href="{% url 'transactions_view' %}" class="quick-link">
+                    <span class="icon">📊</span>
+                    <span>Payment History</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.profile-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.btn-edit {
+    padding: 10px 20px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-edit:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.profile-content {
+    display: grid;
+    gap: 30px;
+}
+
+.profile-card, .resident-info-card {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 30px;
+}
+
+.profile-card {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+.profile-pic {
+    display: flex;
+    justify-content: center;
+}
+
+.profile-pic img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+}
+
+.profile-placeholder {
+    width: 150px;
+    height: 150px;
+    background: var(--background-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--primary-color);
+}
+
+.profile-placeholder .icon {
+    font-size: 4rem;
+}
+
+.info-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.info-row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 20px;
+    padding: 12px;
+    background: var(--background-color);
+    border-radius: 8px;
+}
+
+.info-row label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.info-row span {
+    color: var(--text-light);
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    width: fit-content;
+}
+
+.resident-info-card h2,
+.quick-links h2 {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    font-family: var(--font-display);
+}
+
+.links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.quick-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: var(--background-color);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.quick-link:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-dark);
+    transform: translateY(-3px);
+}
+
+.quick-link .icon {
+    font-size: 2.5rem;
+}
+
+@media (max-width: 768px) {
+    .profile-card {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-header {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .info-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

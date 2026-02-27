@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Notice Details - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="notice-detail-container">
+    <div class="detail-header">
+        <a href="{% url 'notices_view' %}" class="back-link">← Back to Notices</a>
+    </div>
+
+    <article class="notice-detail">
+        {% if notice.image %}
+            <img src="{{ notice.image.url }}" alt="{{ notice.title }}" class="notice-detail-image">
+        {% endif %}
+
+        <div class="notice-detail-content">
+            <div class="detail-meta">
+                <h1>{{ notice.title }}</h1>
+                <div class="meta-info">
+                    <span class="priority-badge priority-{{ notice.priority|lower }}">
+                        {{ notice.priority }} Priority
+                    </span>
+                    <span>📅 {{ notice.posted_date|date:"d M Y, H:i" }}</span>
+                    <span>👤 Posted by: {{ notice.posted_by.get_full_name }}</span>
+                    {% if notice.expiry_date %}
+                        <span>⏰ Expires: {{ notice.expiry_date|date:"d M Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="notice-body">
+                {{ notice.content|linebreaks }}
+            </div>
+
+            <div class="notice-footer">
+                <a href="{% url 'notices_view' %}" class="btn-back">Back to All Notices</a>
+            </div>
+        </div>
+    </article>
+</div>
+
+<style>
+.notice-detail-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.detail-header {
+    margin-bottom: 20px;
+}
+
+.back-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.notice-detail {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.notice-detail-image {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+}
+
+.notice-detail-content {
+    padding: 40px;
+}
+
+.detail-meta h1 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin: 0 0 20px 0;
+}
+
+.meta-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.priority-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.priority-urgent {
+    background: rgba(220, 38, 38, 0.2);
+    color: #dc2626;
+}
+
+.priority-high {
+    background: rgba(249, 115, 22, 0.2);
+    color: #ea580c;
+}
+
+.priority-medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: #d97706;
+}
+
+.priority-low {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.notice-body {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text-color);
+    margin-bottom: 30px;
+}
+
+.notice-body p {
+    margin-bottom: 15px;
+}
+
+.notice-footer {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+.btn-back {
+    display: inline-block;
+    padding: 12px 24px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-back:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .notice-detail-content {
+        padding: 20px;
+    }
+
+    .notice-detail-image {
+        height: 250px;
+    }
+
+    .detail-meta h1 {
+        font-size: 1.8rem;
+    }
+
+    .meta-info {
+        gap: 10px;
+        font-size: 0.9rem;
+    }
+
+    .notice-body {
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}

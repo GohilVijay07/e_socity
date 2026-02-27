@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Welcome, {{ user.get_full_name|default:user.username }}! 👋</h1>
+        <p class="dashboard-subtitle">eSociety Management Portal - Role: <strong>{{ user.get_role_display }}</strong></p>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Main Features -->
+        <div class="feature-section">
+            <h2>📋 Main Features</h2>
+            <div class="feature-cards">
+                <a href="{% url 'profile_view' %}" class="feature-card">
+                    <span class="icon">👤</span>
+                    <span class="title">My Profile</span>
+                    <span class="desc">Manage your account information</span>
+                </a>
+                
+                <a href="{% url 'bills_view' %}" class="feature-card">
+                    <span class="icon">💳</span>
+                    <span class="title">Maintenance Bills</span>
+                    <span class="desc">View and track your bills</span>
+                </a>
+                
+                <a href="{% url 'complaints_view' %}" class="feature-card">
+                    <span class="icon">📝</span>
+                    <span class="title">My Complaints</span>
+                    <span class="desc">File and track complaints</span>
+                </a>
+                
+                <a href="{% url 'transactions_view' %}" class="feature-card">
+                    <span class="icon">💰</span>
+                    <span class="title">Payment History</span>
+                    <span class="desc">View all transactions</span>
+                </a>
+
+                <a href="{% url 'amenities_view' %}" class="feature-card">
+                    <span class="icon">🏢</span>
+                    <span class="title">Book Amenities</span>
+                    <span class="desc">Reserve facilities</span>
+                </a>
+
+                <a href="{% url 'bookings_view' %}" class="feature-card">
+                    <span class="icon">📅</span>
+                    <span class="title">My Bookings</span>
+                    <span class="desc">View your reservations</span>
+                </a>
+
+                <a href="{% url 'notices_view' %}" class="feature-card">
+                    <span class="icon">📢</span>
+                    <span class="title">Society Notices</span>
+                    <span class="desc">Latest announcements</span>
+                </a>
+
+                <a href="{% url 'visitors_view' %}" class="feature-card">
+                    <span class="icon">👥</span>
+                    <span class="title">Visitor Log</span>
+                    <span class="desc">Track visitors</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions-section">
+            <h2>⚡ Quick Actions</h2>
+            <div class="actions-list">
+                <a href="{% url 'complaint_create' %}" class="action-item">
+                    <span class="icon">📝</span>
+                    <span>File New Complaint</span>
+                </a>
+                <a href="{% url 'amenity_book' %}" class="action-item">
+                    <span class="icon">🎫</span>
+                    <span>Book Amenity</span>
+                </a>
+                <a href="{% url 'profile_edit' %}" class="action-item">
+                    <span class="icon">✏️</span>
+                    <span>Edit Profile</span>
+                </a>
+                <a href="{% url 'bills_view' %}" class="action-item">
+                    <span class="icon">💸</span>
+                    <span>Pay Bills</span>
+                </a>
+                {% if user.is_staff %}
+                <a href="/admin/" class="action-item admin">
+                    <span class="icon">⚙️</span>
+                    <span>Admin Panel</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- User Info Card -->
+        <div class="info-card">
+            <h2>ℹ️ Account Info</h2>
+            <div class="info-items">
+                <div class="info-row">
+                    <span class="label">Email:</span>
+                    <span class="value">{{ user.email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Phone:</span>
+                    <span class="value">{{ user.phone|default:"Not provided" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Member Since:</span>
+                    <span class="value">{{ user.date_joined|date:"d M, Y" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Account Status:</span>
+                    <span class="value status-active">Active ✓</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard-container {
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.dashboard-header h1 {
+    font-family: var(--font-display);
+    font-size: 2.8rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.dashboard-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+
+.dashboard-grid {
+    display: grid;
+    gap: 40px;
+}
+
+.feature-section h2,
+.quick-actions-section h2,
+.info-card h2 {
+    font-size: 1.3rem;
+    color: var(--text-color);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.feature-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+}
+
+.feature-card {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 25px;
+    text-decoration: none;
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.05), rgba(249, 115, 22, 0.05));
+}
+
+.feature-card .icon {
+    font-size: 2.5rem;
+}
+
+.feature-card .title {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.feature-card .desc {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.quick-actions-section {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 30px;
+}
+
+.actions-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.action-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--background-color);
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.action-item:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-dark);
+    transform: translateX(5px);
+}
+
+.action-item.admin {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: var(--accent-color);
+}
+
+.action-item.admin:hover {
+    background: var(--accent-color);
+    color: white;
+}
+
+.action-item .icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.info-card {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 30px;
+}
+
+.info-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: var(--background-color);
+    border-radius: 8px;
+}
+
+.info-row .label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.info-row .value {
+    color: var(--text-light);
+}
+
+.status-active {
+    color: #10b981;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .dashboard-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .feature-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .actions-list {
+        grid-template-columns: 1fr;
+    }
+
+    .info-items {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Amenity Booking - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="booking-form-container">
+    <div class="form-wrapper">
+        <div class="form-header">
+            <h1>Book an Amenity</h1>
+            <p>Reserve your preferred facility</p>
+        </div>
+
+        <form method="post" class="booking-form">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.amenity.id_for_label }}">Select Amenity *</label>
+                {{ form.amenity }}
+                {% if form.amenity.errors %}
+                    <div class="errorlist">
+                        {% for error in form.amenity.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.booking_date.id_for_label }}">Booking Date *</label>
+                    {{ form.booking_date }}
+                    {% if form.booking_date.errors %}
+                        <div class="errorlist">
+                            {% for error in form.booking_date.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.start_time.id_for_label }}">Start Time *</label>
+                    {{ form.start_time }}
+                    {% if form.start_time.errors %}
+                        <div class="errorlist">
+                            {% for error in form.start_time.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.end_time.id_for_label }}">End Time *</label>
+                    {{ form.end_time }}
+                    {% if form.end_time.errors %}
+                        <div class="errorlist">
+                            {% for error in form.end_time.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.purpose.id_for_label }}">Purpose of Booking</label>
+                {{ form.purpose }}
+                {% if form.purpose.errors %}
+                    <div class="errorlist">
+                        {% for error in form.purpose.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-info">
+                <p><strong>Note:</strong> Your booking will be confirmed after admin approval. You will receive a confirmation email.</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-submit">Submit Booking Request</button>
+                <a href="{% url 'amenities_view' %}" class="btn-cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.booking-form-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.form-wrapper {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.form-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.form-header p {
+    color: var(--text-light);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.form-row .form-group {
+    margin-bottom: 0;
+}
+
+.form-info {
+    background: rgba(14, 165, 233, 0.1);
+    border-left: 4px solid var(--secondary-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-submit {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(15, 118, 110, 0.3);
+}
+
+.btn-cancel {
+    flex: 0.5;
+    padding: 14px;
+    background: var(--border-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+}
+
+.btn-cancel:hover {
+    background: var(--text-light);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

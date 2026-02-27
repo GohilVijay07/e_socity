@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment History - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="transactions-container">
+    <div class="transactions-header">
+        <h1>Payment History</h1>
+        <div class="transactions-summary">
+            <div class="summary-card">
+                <span class="label">Total Amount Paid</span>
+                <span class="amount">₹{{ total_amount }}</span>
+            </div>
+            <div class="summary-card">
+                <span class="label">Total Transactions</span>
+                <span class="amount">{{ transactions|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if transactions %}
+    <div class="transactions-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Reference No</th>
+                    <th>Amount</th>
+                    <th>Mode</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td data-label="Date">{{ transaction.transaction_date|date:"d M, Y H:i" }}</td>
+                    <td data-label="Type">
+                        <span class="type-badge type-{{ transaction.get_transaction_type_display|lower }}">
+                            {{ transaction.get_transaction_type_display }}
+                        </span>
+                    </td>
+                    <td data-label="Reference">{{ transaction.reference_no }}</td>
+                    <td data-label="Amount"><strong>₹{{ transaction.amount }}</strong></td>
+                    <td data-label="Mode">{{ transaction.get_payment_mode_display }}</td>
+                    <td data-label="Details">
+                        {{ transaction.remarks|default:"—" }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">💰</div>
+        <h2>No Transactions Found</h2>
+        <p>You don't have any payment history yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.transactions-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.transactions-header {
+    margin-bottom: 30px;
+}
+
+.transactions-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+.transactions-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.summary-card {
+    background: var(--surface-color);
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.summary-card .label {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.summary-card .amount {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.transactions-table {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: var(--background-color);
+}
+
+th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--border-color);
+}
+
+td {
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-light);
+}
+
+tbody tr:hover {
+    background: var(--background-color);
+}
+
+.type-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.type-maintenance {
+    background: rgba(249, 115, 22, 0.2);
+    color: #ea580c;
+}
+
+.type-other_charge {
+    background: rgba(14, 165, 233, 0.2);
+    color: #0284c7;
+}
+
+.type-refund {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.type-amenity_booking {
+    background: rgba(168, 85, 247, 0.2);
+    color: #9333ea;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.empty-state h2 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.empty-state p {
+    color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    th {
+        display: none;
+    }
+
+    tr {
+        margin-bottom: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+
+    td {
+        padding: 12px;
+        padding-left: 50%;
+        position: relative;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 12px;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+}
+</style>
+{% endblock %}

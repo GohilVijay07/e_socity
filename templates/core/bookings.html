@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}My Bookings - eSociety Management{% endblock %}
+
+{% block content %}
+<div class="bookings-container">
+    <div class="bookings-header">
+        <h1>My Amenity Bookings</h1>
+        <a href="{% url 'amenities_view' %}" class="btn-new">+ New Booking</a>
+    </div>
+
+    {% if bookings %}
+    <div class="bookings-list">
+        {% for booking in bookings %}
+        <div class="booking-card">
+            <div class="booking-header-line">
+                <h3>{{ booking.amenity.name }}</h3>
+                <span class="status-badge status-{{ booking.status|lower }}">
+                    {{ booking.get_status_display }}
+                </span>
+            </div>
+            
+            <div class="booking-details">
+                <div class="detail-item">
+                    <span class="label">📅 Date:</span>
+                    <span>{{ booking.booking_date|date:"d M, Y" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">⏱️ Time:</span>
+                    <span>{{ booking.start_time|time:"H:i" }} - {{ booking.end_time|time:"H:i" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">📝 Purpose:</span>
+                    <span>{{ booking.purpose|default:"Not specified" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">🗓️ Booked On:</span>
+                    <span>{{ booking.created_at|date:"d M, Y H:i" }}</span>
+                </div>
+            </div>
+
+            {% if booking.status == 'PENDING' %}
+            <div class="booking-actions">
+                <small>Awaiting admin confirmation...</small>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h2>No Bookings Yet</h2>
+        <p>You haven't booked any amenities yet.</p>
+        <a href="{% url 'amenities_view' %}" class="btn-book-now">Browse Amenities</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.bookings-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.bookings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.bookings-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.btn-new {
+    padding: 10px 20px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-new:hover {
+    background: #ea580c;
+}
+
+.bookings-list {
+    display: grid;
+    gap: 20px;
+}
+
+.booking-card {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    border-left: 4px solid var(--secondary-color);
+    transition: var(--transition);
+}
+
+.booking-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.booking-header-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.booking-header-line h3 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: rgba(249, 115, 22, 0.2);
+    color: #ea580c;
+}
+
+.status-confirmed {
+    background: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.status-cancelled {
+    background: rgba(220, 38, 38, 0.2);
+    color: #dc2626;
+}
+
+.status-completed {
+    background: rgba(14, 165, 233, 0.2);
+    color: #0284c7;
+}
+
+.booking-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    padding: 15px;
+    background: var(--background-color);
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.detail-item {
+    display: flex;
+    gap: 8px;
+}
+
+.detail-item .label {
+    font-weight: 600;
+    color: var(--text-color);
+    white-space: nowrap;
+}
+
+.detail-item span {
+    color: var(--text-light);
+}
+
+.booking-actions {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.empty-state h2 {
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.empty-state p {
+    color: var(--text-light);
+    margin-bottom: 20px;
+}
+
+.btn-book-now {
+    display: inline-block;
+    padding: 10px 20px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-book-now:hover {
+    background: #ea580c;
+}
+</style>
+{% endblock %}

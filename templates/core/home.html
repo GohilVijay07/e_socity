@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to eSociety - Smart Community Management{% endblock %}
+
+{% block content %}
+<div class="home-hero">
+    <div class="hero-content">
+        <h1 class="hero-title">Effortless Community Management</h1>
+        <p class="hero-subtitle">Your all-in-one platform to manage residents, bills, complaints, visitors, and amenities with complete transparency.</p>
+        <div class="hero-cta">
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+                <a href="#features" class="btn btn-secondary">Explore Features</a>
+            {% else %}
+                <a href="{% url 'signup' %}" class="btn btn-primary">Get Started Free</a>
+                <a href="#features" class="btn btn-secondary">Learn More</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<section class="about-section" id="about">
+    <div class="section-header">
+        <h2>About eSociety</h2>
+        <p>Your trusted partner in community management</p>
+    </div>
+    <div class="about-content">
+        <p>eSociety is a comprehensive digital platform designed to streamline society management operations. We help residential communities transition from traditional paper-based systems to modern, efficient digital solutions.</p>
+        <p>Our platform empowers society committees, residents, and staff with the tools they need to manage day-to-day operations seamlessly, ensuring transparency and better communication across all stakeholders.</p>
+    </div>
+</section>
+
+<section class="features-section" id="features">
+    <div class="section-header">
+        <h2>Everything you need to run a modern society</h2>
+        <p>Powerful tools designed for committees, residents, and staff</p>
+    </div>
+    
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">💳</div>
+            <h3>Maintenance Billing</h3>
+            <p>Track monthly bills, payment history, and send automated reminders to residents.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🏢</div>
+            <h3>Unit Management</h3>
+            <p>Complete database of all flats, owners, tenants, and occupancy tracking.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3>Complaint Management</h3>
+            <p>Log, track, and resolve resident complaints with priority-based workflow.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">👥</div>
+            <h3>Visitor Tracking</h3>
+            <p>Digital register for all visitors with entry/exit timestamps and host details.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">🏊</div>
+            <h3>Amenity Booking</h3>
+            <p>Reserve clubhouse, gym, or pool with easy scheduling and conflict prevention.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">📢</div>
+            <h3>Notice Board</h3>
+            <p>Post important announcements and ensure every resident stays informed.</p>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="stats-grid">
+        <div class="stat-item">
+            <div class="stat-number">10+</div>
+            <div class="stat-label">Core Modules</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">100%</div>
+            <div class="stat-label">Free & Open</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">24/7</div>
+            <div class="stat-label">Access Anytime</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">Secure</div>
+            <div class="stat-label">Data Protection</div>
+        </div>
+    </div>
+</section>
+
+<section class="contact-section" id="contact">
+    <div class="section-header">
+        <h2>Get in Touch</h2>
+        <p>Have questions? We'd love to hear from you</p>
+    </div>
+    <div class="contact-content">
+        <div class="contact-info">
+            <div class="contact-item">
+                <div class="contact-icon">📧</div>
+                <h4>Email Us</h4>
+                <p>support@esociety.com</p>
+            </div>
+            <div class="contact-item">
+                <div class="contact-icon">📞</div>
+                <h4>Call Us</h4>
+                <p>+91 1800-123-4567</p>
+            </div>
+            <div class="contact-item">
+                <div class="contact-icon">📍</div>
+                <h4>Visit Us</h4>
+                <p>Mumbai, Maharashtra, India</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="cta-content">
+        <h2>Ready to modernize your society?</h2>
+        <p>Join hundreds of societies managing their communities better</p>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'signup' %}" class="btn btn-primary btn-lg">Start Managing Today</a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
