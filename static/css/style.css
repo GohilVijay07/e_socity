@@ -590,6 +590,60 @@ button[type='submit']:active,
     accent-color: var(--primary-color);
 }
 
+.gender-options ul {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin: 10px 0;
+}
+
+.gender-options li {
+    display: flex;
+}
+
+.gender-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-color);
+    cursor: pointer;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    margin-bottom: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    border-radius: 8px;
+    background: #f8fafc;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.gender-options label:hover {
+    border-color: var(--primary-color);
+    background: rgba(15, 118, 110, 0.05);
+}
+
+.gender-options input[type="radio"] {
+    cursor: pointer;
+    accent-color: var(--primary-color);
+    width: auto;
+    margin: 0;
+}
+
+.gender-options input[type="radio"]:checked {
+    accent-color: var(--primary-color);
+}
+
+.gender-options input[type="radio"]:checked ~ label,
+.gender-options label:has(input[type="radio"]:checked) {
+    border-color: var(--primary-color);
+    background: rgba(15, 118, 110, 0.1);
+    font-weight: 600;
+}
+
 .forgot-password {
     color: var(--primary-color);
     text-decoration: none;

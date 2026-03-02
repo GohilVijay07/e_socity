@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to e_socity</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f4ef;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .email-header {
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .email-body {
+            padding: 40px 30px;
+            color: #1f2933;
+            line-height: 1.8;
+        }
+        .email-body h2 {
+            color: #0f766e;
+            font-size: 22px;
+            margin-top: 0;
+        }
+        .email-body p {
+            margin: 15px 0;
+            font-size: 16px;
+        }
+        .info-box {
+            background-color: #f0fdfa;
+            border-left: 4px solid #0f766e;
+            padding: 15px 20px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+        .email-footer {
+            background-color: #f8fafc;
+            padding: 25px 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>🏘️ Welcome to e_socity</h1>
+        </div>
+        <div class="email-body">
+            <h2>Hello {{ user_name }}!</h2>
+            <p>Your account has been successfully created. Welcome to our e-Society Management System!</p>
+            
+            <div class="info-box">
+                <strong>Account Details:</strong><br>
+                Email: {{ user_email }}<br>
+                Role: {{ user_role }}<br>
+                Created: {{ login_time }}
+            </div>
+            
+            <p>With e_socity, you can:</p>
+            <ul>
+                <li>View and pay maintenance bills instantly</li>
+                <li>Track complaints and issues in real-time</li>
+                <li>Book amenities with live availability</li>
+                <li>Check visitor logs and approvals</li>
+                <li>Stay updated with society notices</li>
+            </ul>
+            
+            <p style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="btn">Go to Dashboard</a>
+            </p>
+            
+            <p><strong>Getting Started:</strong> You can now login with your email and the password you created during signup.</p>
+        </div>
+        <div class="email-footer">
+            <p>This is an automated message from e_socity Management System.</p>
+            <p>&copy; 2026 e_socity. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

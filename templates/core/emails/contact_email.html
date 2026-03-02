@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Form Submission</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f4ef;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .email-header {
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .email-body {
+            padding: 40px 30px;
+            color: #1f2933;
+            line-height: 1.8;
+        }
+        .field-label {
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        .field-value {
+            color: #1f2933;
+            font-size: 16px;
+            margin-bottom: 20px;
+            padding: 12px;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border-left: 3px solid #0f766e;
+        }
+        .message-box {
+            background-color: #f0fdfa;
+            border: 1px solid #99f6e4;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .email-footer {
+            background-color: #f8fafc;
+            padding: 20px 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>📧 New Contact Form Submission</h1>
+        </div>
+        <div class="email-body">
+            <div class="field-label">From</div>
+            <div class="field-value">{{ sender_name }}</div>
+            
+            <div class="field-label">Email</div>
+            <div class="field-value">{{ sender_email }}</div>
+            
+            <div class="field-label">Subject</div>
+            <div class="field-value">{{ subject }}</div>
+            
+            <div class="field-label">Message</div>
+            <div class="message-box">{{ message }}</div>
+            
+            <p style="color: #64748b; font-size: 14px;">
+                <strong>Sent at:</strong> {{ timestamp }}
+            </p>
+        </div>
+        <div class="email-footer">
+            <p>This message was sent via the e_socity contact form.</p>
+            <p>&copy; 2026 e_socity Management System</p>
+        </div>
+    </div>
+</body>
+</html>

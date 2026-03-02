@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Contact Us</h2>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}" role="alert">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_name" class="form-label">Name:</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <small class="text-danger">{{ form.name.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_email" class="form-label">Email:</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <small class="text-danger">{{ form.email.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_subject" class="form-label">Subject:</label>
+                            {{ form.subject }}
+                            {% if form.subject.errors %}
+                                <small class="text-danger">{{ form.subject.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_message" class="form-label">Message:</label>
+                            {{ form.message }}
+                            {% if form.message.errors %}
+                                <small class="text-danger">{{ form.message.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">Send Message</button>
+                    </form>
+                    
+                    <hr>
+                    <p class="text-center mt-3">
+                        <a href="{% url 'home' %}">Back to Home</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
