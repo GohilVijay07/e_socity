@@ -64,7 +64,10 @@
             
             <div class="form-group">
                 <label for="{{ form.password.id_for_label }}">Password</label>
-                {{ form.password }}
+                <div class="password-wrapper">
+                    {{ form.password }}
+                    <button class="password-toggle-btn" type="button" title="Show password">👁️</button>
+                </div>
                 {% if form.password.errors %}
                     <div class="errorlist">
                         {% for error in form.password.errors %}
