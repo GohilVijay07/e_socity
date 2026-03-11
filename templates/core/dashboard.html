@@ -9,81 +9,119 @@
         <p class="dashboard-subtitle">eSociety Management Portal - Role: <strong>{{ user.get_role_display }}</strong></p>
     </div>
 
+    <!-- Role-based Info Message -->
+    {% if user_role == 'VISITOR' %}
+    <div style="background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 15px; margin-bottom: 30px; color: #1565c0;">
+        <strong>👋 Welcome, Guest!</strong> As a visitor, you can register your visit, view society notices, and manage your profile. To access more features like bills, complaints, and amenity bookings, please contact the administration to upgrade to a Resident account.
+    </div>
+    {% elif user_role == 'RESIDENT' %}
+    <div style="background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; padding: 15px; margin-bottom: 30px; color: #512da8;">
+        <strong>🏠 Welcome, Resident!</strong> Manage your bills, file complaints, book amenities, and stay updated with society notices.
+    </div>
+    {% elif user_role == 'STAFF' %}
+    <div style="background: #fff3e0; border: 1px solid #ffb74d; border-radius: 8px; padding: 15px; margin-bottom: 30px; color: #e65100;">
+        <strong>👷 Welcome, Staff Member!</strong> Manage your assigned tasks and handle visitor registrations.
+    </div>
+    {% endif %}
+
     <div class="dashboard-grid">
-        <!-- Main Features -->
+        <!-- Main Features - Conditional by Role -->
         <div class="feature-section">
             <h2>📋 Main Features</h2>
             <div class="feature-cards">
-                <a href="{% url 'profile_view' %}" class="feature-card">
+                <!-- All Roles -->
+                <a href="{% url 'socity:resident_profile' %}" class="feature-card">
                     <span class="icon">👤</span>
                     <span class="title">My Profile</span>
                     <span class="desc">Manage your account information</span>
                 </a>
-                
-                <a href="{% url 'bills_view' %}" class="feature-card">
-                    <span class="icon">💳</span>
-                    <span class="title">Maintenance Bills</span>
-                    <span class="desc">View and track your bills</span>
-                </a>
-                
-                <a href="{% url 'complaints_view' %}" class="feature-card">
-                    <span class="icon">📝</span>
-                    <span class="title">My Complaints</span>
-                    <span class="desc">File and track complaints</span>
-                </a>
-                
-                <a href="{% url 'transactions_view' %}" class="feature-card">
-                    <span class="icon">💰</span>
-                    <span class="title">Payment History</span>
-                    <span class="desc">View all transactions</span>
-                </a>
 
-                <a href="{% url 'amenities_view' %}" class="feature-card">
-                    <span class="icon">🏢</span>
-                    <span class="title">Book Amenities</span>
-                    <span class="desc">Reserve facilities</span>
-                </a>
+                <!-- Resident Only Features -->
+                {% if user_role == 'RESIDENT' %}
+                    <a href="{% url 'socity:resident_bills' %}" class="feature-card">
+                        <span class="icon">💳</span>
+                        <span class="title">Maintenance Bills</span>
+                        <span class="desc">View and track your bills</span>
+                    </a>
+                    
+                    <a href="{% url 'socity:resident_complaints' %}" class="feature-card">
+                        <span class="icon">📝</span>
+                        <span class="title">My Complaints</span>
+                        <span class="desc">File and track complaints</span>
+                    </a>
+                    
+                    <a href="{% url 'socity:resident_bills' %}" class="feature-card">
+                        <span class="icon">💰</span>
+                        <span class="title">Payment History</span>
+                        <span class="desc">View all transactions</span>
+                    </a>
 
-                <a href="{% url 'bookings_view' %}" class="feature-card">
-                    <span class="icon">📅</span>
-                    <span class="title">My Bookings</span>
-                    <span class="desc">View your reservations</span>
-                </a>
+                    <a href="{% url 'socity:resident_amenities' %}" class="feature-card">
+                        <span class="icon">🏢</span>
+                        <span class="title">Book Amenities</span>
+                        <span class="desc">Reserve facilities</span>
+                    </a>
 
-                <a href="{% url 'notices_view' %}" class="feature-card">
+                    <a href="{% url 'socity:resident_bookings' %}" class="feature-card">
+                        <span class="icon">📅</span>
+                        <span class="title">My Bookings</span>
+                        <span class="desc">View your reservations</span>
+                    </a>
+
+                    <a href="{% url 'socity:resident_visitor_log' %}" class="feature-card">
+                        <span class="icon">👥</span>
+                        <span class="title">Visitor Log</span>
+                        <span class="desc">Track visitors</span>
+                    </a>
+                {% endif %}
+
+                <!-- All Authenticated Users - Notices -->
+                <a href="{% url 'socity:resident_notices' %}" class="feature-card">
                     <span class="icon">📢</span>
                     <span class="title">Society Notices</span>
                     <span class="desc">Latest announcements</span>
                 </a>
 
-                <a href="{% url 'visitors_view' %}" class="feature-card">
-                    <span class="icon">👥</span>
-                    <span class="title">Visitor Log</span>
-                    <span class="desc">Track visitors</span>
-                </a>
+                <!-- Visitor Specific Features -->
+                {% if user_role == 'VISITOR' %}
+                    <a href="{% url 'socity:visitor_registration' %}" class="feature-card">
+                        <span class="icon">📋</span>
+                        <span class="title">Register Visit</span>
+                        <span class="desc">Log your entry to the society</span>
+                    </a>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Quick Actions -->
+        <!-- Quick Actions - Conditional by Role -->
         <div class="quick-actions-section">
             <h2>⚡ Quick Actions</h2>
             <div class="actions-list">
-                <a href="{% url 'complaint_create' %}" class="action-item">
-                    <span class="icon">📝</span>
-                    <span>File New Complaint</span>
-                </a>
-                <a href="{% url 'amenity_book' %}" class="action-item">
-                    <span class="icon">🎫</span>
-                    <span>Book Amenity</span>
-                </a>
-                <a href="{% url 'profile_edit' %}" class="action-item">
+                <a href="{% url 'socity:resident_profile_edit' %}" class="action-item">
                     <span class="icon">✏️</span>
                     <span>Edit Profile</span>
                 </a>
-                <a href="{% url 'bills_view' %}" class="action-item">
-                    <span class="icon">💸</span>
-                    <span>Pay Bills</span>
-                </a>
+
+                {% if user_role == 'RESIDENT' %}
+                    <a href="{% url 'socity:resident_complaint_create' %}" class="action-item">
+                        <span class="icon">📝</span>
+                        <span>File New Complaint</span>
+                    </a>
+                    <a href="{% url 'socity:resident_amenities' %}" class="action-item">
+                        <span class="icon">🎫</span>
+                        <span>Book Amenity</span>
+                    </a>
+                    <a href="{% url 'socity:resident_bills' %}" class="action-item">
+                        <span class="icon">💸</span>
+                        <span>Pay Bills</span>
+                    </a>
+                {% elif user_role == 'VISITOR' %}
+                    <a href="{% url 'socity:visitor_registration' %}" class="action-item">
+                        <span class="icon">📋</span>
+                        <span>Register Visit</span>
+                    </a>
+                {% endif %}
+
                 {% if user.is_staff %}
                 <a href="/admin/" class="action-item admin">
                     <span class="icon">⚙️</span>

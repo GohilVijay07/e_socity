@@ -5,7 +5,7 @@
 {% block content %}
 <div class="complaint-detail-container">
     <div class="detail-header">
-        <a href="{% url 'complaints_view' %}" class="back-link">← Back to Complaints</a>
+        <a href="{% url 'socity:resident_complaints' %}" class="back-link">← Back to Complaints</a>
         <span class="status-badge status-{{ complaint.status|lower }}">
             {{ complaint.get_status_display }}
         </span>

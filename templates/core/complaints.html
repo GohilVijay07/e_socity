@@ -6,7 +6,7 @@
 <div class="complaints-container">
     <div class="complaints-header">
         <h1>My Complaints</h1>
-        <a href="{% url 'complaint_create' %}" class="btn-new">+ New Complaint</a>
+        <a href="{% url 'socity:resident_complaint_create' %}" class="btn-new">+ New Complaint</a>
     </div>
 
     {% if complaints %}
@@ -42,7 +42,7 @@
 
             <p class="complaint-description">{{ complaint.description|truncatewords:30 }}</p>
 
-            <a href="{% url 'complaint_detail' complaint.pk %}" class="btn-view">View Details</a>
+            <a href="{% url 'socity:resident_complaint_detail' complaint.pk %}" class="btn-view">View Details</a>
         </div>
         {% endfor %}
     </div>
@@ -51,7 +51,7 @@
         <div class="empty-icon">📝</div>
         <h2>No Complaints Yet</h2>
         <p>You haven't filed any complaints yet.</p>
-        <a href="{% url 'complaint_create' %}" class="btn-create">File Your First Complaint</a>
+        <a href="{% url 'socity:resident_complaint_create' %}" class="btn-create">File Your First Complaint</a>
     </div>
     {% endif %}
 </div>

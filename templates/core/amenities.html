@@ -25,7 +25,7 @@
                 
                 <div class="amenity-footer">
                     <span class="status-badge available">Available</span>
-                    <a href="{% url 'amenity_book' %}?amenity={{ amenity.pk }}" class="btn-book">Book Now</a>
+                    <a href="{% url 'socity:resident_amenity_book' amenity.pk %}" class="btn-book">Book Now</a>
                 </div>
             </div>
         </div>

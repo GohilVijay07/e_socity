@@ -23,18 +23,43 @@
                 <li class="nav-item">
                     <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
                 </li>
-                <li class="nav-item">
-                    <a href="{% url 'profile_view' %}" class="nav-link">Profile</a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'bills_view' %}" class="nav-link">Bills</a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'complaints_view' %}" class="nav-link">Complaints</a>
-                </li>
-                <li class="nav-item">
-                    <a href="{% url 'notices_view' %}" class="nav-link">Notices</a>
-                </li>
+                {% if user.role == 'RESIDENT' %}
+                    <li class="nav-item">
+                        <a href="{% url 'socity:resident_profile' %}" class="nav-link">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:resident_bills' %}" class="nav-link">Bills</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:resident_complaints' %}" class="nav-link">Complaints</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:resident_notices' %}" class="nav-link">Notices</a>
+                    </li>
+                {% elif user.role == 'ADMIN' %}
+                    <li class="nav-item">
+                        <a href="{% url 'socity:resident_list' %}" class="nav-link">Residents</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:bill_list' %}" class="nav-link">Bills</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:complaint_list' %}" class="nav-link">Complaints</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:notice_list' %}" class="nav-link">Notices</a>
+                    </li>
+                {% elif user.role == 'STAFF' %}
+                    <li class="nav-item">
+                        <a href="{% url 'socity:staff_tasks' %}" class="nav-link">Tasks</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:staff_complaints' %}" class="nav-link">Complaints</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'socity:staff_visitors' %}" class="nav-link">Visitors</a>
+                    </li>
+                {% endif %}
                 
                 <li class="nav-item">
                     <a href="{% url 'contact' %}" class="nav-link">Contact Us</a>

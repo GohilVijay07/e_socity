@@ -6,7 +6,7 @@
 <div class="profile-container">
     <div class="profile-header">
         <h1>My Profile</h1>
-        <a href="{% url 'profile_edit' %}" class="btn-edit">Edit Profile</a>
+        <a href="{% url 'socity:resident_profile_edit' %}" class="btn-edit">Edit Profile</a>
     </div>
 
     <div class="profile-content">
@@ -98,19 +98,19 @@
         <div class="quick-links">
             <h2>Quick Links</h2>
             <div class="links-grid">
-                <a href="{% url 'bills_view' %}" class="quick-link">
+                <a href="{% url 'socity:resident_bills' %}" class="quick-link">
                     <span class="icon">💳</span>
                     <span>View Bills</span>
                 </a>
-                <a href="{% url 'complaints_view' %}" class="quick-link">
+                <a href="{% url 'socity:resident_complaints' %}" class="quick-link">
                     <span class="icon">📝</span>
                     <span>My Complaints</span>
                 </a>
-                <a href="{% url 'bookings_view' %}" class="quick-link">
+                <a href="{% url 'socity:resident_bookings' %}" class="quick-link">
                     <span class="icon">📋</span>
                     <span>My Bookings</span>
                 </a>
-                <a href="{% url 'transactions_view' %}" class="quick-link">
+                <a href="{% url 'socity:resident_bills' %}" class="quick-link">
                     <span class="icon">📊</span>
                     <span>Payment History</span>
                 </a>

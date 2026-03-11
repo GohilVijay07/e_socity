@@ -24,8 +24,11 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    """User dashboard view"""
-    return render(request, 'core/dashboard.html')
+    """User dashboard view - Role-based feature display"""
+    context = {
+        'user_role': request.user.role,
+    }
+    return render(request, 'core/dashboard.html', context)
 
 def userSignupView(request):
     if request.user.is_authenticated:
@@ -80,9 +83,14 @@ def userLoginView(request):
         return redirect('home')  # Redirect to home if already logged in
     
     if request.method == "POST":
-        form = UserLoginForm(request, data=request.POST)
+        login_data = request.POST.copy()
+        identifier = (login_data.get('username') or login_data.get('email') or '').strip()
+        if identifier:
+            login_data['username'] = identifier
+
+        form = UserLoginForm(request, data=login_data)
         if form.is_valid():
-            username = form.cleaned_data.get('username')
+            username = (form.cleaned_data.get('username') or '').strip()
             password = form.cleaned_data.get('password')
             user = authenticate(username=username, password=password)
             if user is not None:
@@ -261,6 +269,21 @@ class CustomPasswordResetDoneView(PasswordResetDoneView):
     template_name = 'core/password_reset_done.html'
 
 
+# ============= ERROR HANDLERS =============
+
+def error_403(request, exception=None):
+    """Handle 403 Forbidden errors"""
+    return render(request, '403.html', {'user_role': request.user.role if request.user.is_authenticated else None}, status=403)
+
+
+def error_404(request, exception=None):
+    """Handle 404 Not Found errors"""
+    return render(request, '404.html', status=404)
+
+
+def error_500(request):
+    """Handle 500 Server errors"""
+    return render(request, '500.html', status=500)
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'core/password_reset_confirm.html'
     success_url = reverse_lazy('password_reset_complete')

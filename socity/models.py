@@ -249,3 +249,153 @@ class Transaction(models.Model):
     
     def __str__(self):
         return f"{self.resident.user.get_full_name()} - {self.get_transaction_type_display()} - {self.amount}"
+
+
+# 11. Staff Profile
+class Staff(models.Model):
+    """Model for storing staff/maintenance worker information"""
+    DESIGNATION_CHOICES = [
+        ('SECURITY', 'Security Guard'),
+        ('MAINTENANCE', 'Maintenance Worker'),
+        ('CLEANER', 'Cleaner'),
+        ('GARDENER', 'Gardener'),
+        ('SUPERVISOR', 'Supervisor'),
+        ('OTHER', 'Other'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ACTIVE', 'Active'),
+        ('INACTIVE', 'Inactive'),
+        ('ON_LEAVE', 'On Leave'),
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='staff_profile')
+    designation = models.CharField(max_length=20, choices=DESIGNATION_CHOICES)
+    department = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
+    join_date = models.DateField()
+    salary = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    aadhar_no = models.CharField(max_length=12, blank=True, null=True, unique=True)
+    emergency_contact = models.CharField(max_length=100, blank=True, null=True)
+    emergency_phone = models.CharField(max_length=15, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-join_date']
+    
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.get_designation_display()}"
+
+
+# 12. Building Information
+class Building(models.Model):
+    """Model for storing building information"""
+    name = models.CharField(max_length=100, unique=True)
+    wing_code = models.CharField(max_length=5, unique=True)
+    total_floors = models.IntegerField()
+    units_per_floor = models.IntegerField()
+    address = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+
+# 13. Notice Read Status (Track which residents have seen notices)
+class NoticeRead(models.Model):
+    """Model to track which residents have read notices"""
+    notice = models.ForeignKey(Notice, on_delete=models.CASCADE, related_name='read_by')
+    resident = models.ForeignKey(Resident, on_delete=models.CASCADE)
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['notice', 'resident']
+    
+    def __str__(self):
+        return f"{self.resident.user.get_full_name()} read {self.notice.title}"
+
+
+# 14. Task Assignment for Staff
+class Task(models.Model):
+    """Model for assigning maintenance tasks to staff"""
+    PRIORITY_CHOICES = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    assigned_to = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name='tasks')
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assigned_tasks')
+    location = models.CharField(max_length=200, blank=True, null=True)
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    assigned_date = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateField(blank=True, null=True)
+    completed_date = models.DateTimeField(null=True, blank=True)
+    remarks = models.TextField(blank=True, null=True)
+    complaint = models.ForeignKey(Complaint, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks')
+
+    class Meta:
+        ordering = ['-assigned_date']
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_status_display()}"
+
+
+# 15. Visitor Pre-Approval by Resident
+class VisitorApproval(models.Model):
+    """Model for residents to pre-approve or block visitors"""
+    STATUS_CHOICES = [
+        ('APPROVED', 'Approved'),
+        ('BLOCKED', 'Blocked'),
+        ('PENDING', 'Pending'),
+    ]
+    
+    resident = models.ForeignKey(Resident, on_delete=models.CASCADE, related_name='visitor_approvals')
+    visitor_name = models.CharField(max_length=100)
+    visitor_phone = models.CharField(max_length=15, blank=True, null=True)
+    purpose = models.CharField(max_length=200)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    valid_from = models.DateField()
+    valid_to = models.DateField()
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.visitor_name} - {self.resident.unit} ({self.get_status_display()})"
+
+
+# 16. Complaint Status Updates (Track progress on complaints)
+class ComplaintUpdate(models.Model):
+    """Model to track status updates on complaints"""
+    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name='updates')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    status = models.CharField(max_length=20, choices=Complaint.STATUS_CHOICES)
+    remarks = models.TextField()
+    update_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-update_date']
+    
+    def __str__(self):
+        return f"{self.complaint.title} updated to {self.get_status_display()}"

@@ -6,7 +6,7 @@
 <div class="bookings-container">
     <div class="bookings-header">
         <h1>My Amenity Bookings</h1>
-        <a href="{% url 'amenities_view' %}" class="btn-new">+ New Booking</a>
+        <a href="{% url 'socity:resident_amenities' %}" class="btn-new">+ New Booking</a>
     </div>
 
     {% if bookings %}
@@ -52,7 +52,7 @@
         <div class="empty-icon">📋</div>
         <h2>No Bookings Yet</h2>
         <p>You haven't booked any amenities yet.</p>
-        <a href="{% url 'amenities_view' %}" class="btn-book-now">Browse Amenities</a>
+        <a href="{% url 'socity:resident_amenities' %}" class="btn-book-now">Browse Amenities</a>
     </div>
     {% endif %}
 </div>
