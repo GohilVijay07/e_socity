@@ -70,6 +70,14 @@ class UserSignupForm(UserCreationForm):
                 'class': 'form-control',
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Public signup must not allow creating administrator accounts.
+        self.fields['role'].choices = [
+            choice for choice in self.fields['role'].choices if choice[0] != 'ADMIN'
+        ]
+        self.fields['role'].initial = 'RESIDENT'
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -82,6 +90,12 @@ class UserSignupForm(UserCreationForm):
         if phone and not phone.replace(' ', '').replace('-', '').isdigit():
             raise forms.ValidationError('Phone number should contain only digits.')
         return phone
+
+    def clean_role(self):
+        role = self.cleaned_data.get('role')
+        if role == 'ADMIN':
+            raise forms.ValidationError('Administrator role cannot be selected during signup.')
+        return role
     
     def save(self, commit=True):
         user = super().save(commit=False)
