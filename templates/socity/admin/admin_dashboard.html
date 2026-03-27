@@ -1,0 +1,220 @@
+{% extends 'socity/admin/admin_base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block admin_content %}
+<div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Admin Dashboard</h2>
+            <p class="text-muted mb-0">System overview</p>
+        </div>
+        <a class="btn btn-outline-primary" href="{% url 'socity:reports_dashboard' %}">View Reports</a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Users</h6>
+                    <h3 class="mb-0">{{ total_users }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Residents</h6>
+                    <h3 class="mb-0">{{ total_residents }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Staff</h6>
+                    <h3 class="mb-0">{{ total_staff }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Units</h6>
+                    <h3 class="mb-0">{{ total_units }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Complaints</h6>
+                    <h3 class="mb-0">{{ total_complaints }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Pending Complaints</h6>
+                    <h3 class="mb-0">{{ pending_complaints }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Paid Bills</h6>
+                    <h3 class="mb-0">{{ paid_bills }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Unpaid Bills</h6>
+                    <h3 class="mb-0">{{ unpaid_bills }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Visitors Today</h6>
+                    <h3 class="mb-0">{{ visitors_today }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total Revenue</h6>
+                    <h3 class="mb-0">{{ total_revenue }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-2">
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Complaints by Status</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="complaintStatusChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Monthly Revenue</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyPaymentsChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Visitor Entries per Day</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="visitorEntriesChart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ complaint_status_labels|json_script:"complaint-status-labels" }}
+{{ complaint_status_data|json_script:"complaint-status-data" }}
+{{ monthly_payment_labels|json_script:"monthly-payment-labels" }}
+{{ monthly_payment_data|json_script:"monthly-payment-data" }}
+{{ visitor_daily_labels|json_script:"visitor-daily-labels" }}
+{{ visitor_daily_data|json_script:"visitor-daily-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const complaintStatusLabels = JSON.parse(document.getElementById('complaint-status-labels').textContent);
+        const complaintStatusData = JSON.parse(document.getElementById('complaint-status-data').textContent);
+        const monthlyPaymentLabels = JSON.parse(document.getElementById('monthly-payment-labels').textContent);
+        const monthlyPaymentData = JSON.parse(document.getElementById('monthly-payment-data').textContent);
+        const visitorDailyLabels = JSON.parse(document.getElementById('visitor-daily-labels').textContent);
+        const visitorDailyData = JSON.parse(document.getElementById('visitor-daily-data').textContent);
+
+        new Chart(document.getElementById('complaintStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: complaintStatusLabels,
+                datasets: [{
+                    data: complaintStatusData,
+                    backgroundColor: ['#0ea5e9', '#f59e0b', '#10b981', '#6366f1'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('monthlyPaymentsChart'), {
+            type: 'bar',
+            data: {
+                labels: monthlyPaymentLabels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: monthlyPaymentData,
+                    backgroundColor: 'rgba(16, 185, 129, 0.55)',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('visitorEntriesChart'), {
+            type: 'line',
+            data: {
+                labels: visitorDailyLabels,
+                datasets: [{
+                    label: 'Entries',
+                    data: visitorDailyData,
+                    borderColor: '#f97316',
+                    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } }
+                },
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
+

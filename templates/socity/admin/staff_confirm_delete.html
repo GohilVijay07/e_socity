@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Delete Staff{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="card p-4"><h4>Delete {{ staff.user.get_full_name }}?</h4><form method="post">{% csrf_token %}<button class="btn btn-danger">Delete</button> <a href="{% url 'socity:staff_list' %}" class="btn btn-secondary">Cancel</a></form></div></div>
+{% endblock %}
+

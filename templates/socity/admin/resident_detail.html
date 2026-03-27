@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Resident Detail{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>{{ resident.user.get_full_name }}</h3><p class="text-muted">Unit: {{ resident.unit }} | Status: {{ resident.get_status_display }}</p><div class="mb-3"><a class="btn btn-primary" href="{% url 'socity:resident_edit' resident.id %}">Edit</a> <a class="btn btn-danger" href="{% url 'socity:resident_delete' resident.id %}">Delete</a></div><div class="card p-3"><h5>Transactions</h5><ul>{% for t in transactions %}<li>{{ t.transaction_date|date:'d M Y' }} - {{ t.amount }}</li>{% empty %}<li>No transactions.</li>{% endfor %}</ul></div></div>
+{% endblock %}
+

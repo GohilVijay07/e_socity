@@ -2,7 +2,7 @@
     ROOT & GENERAL STYLES
     ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap');
 
 :root {
     --primary-color: #0f766e;
@@ -640,10 +640,57 @@ button[type='submit']:active,
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 12px;
     margin: 10px 0;
+    padding: 0;
+}
+
+/* Controlled signup gender layout */
+.gender-options .gender-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.gender-options .gender-option-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    border-radius: 10px;
+    background: #f8fafc;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    transition: var(--transition);
+}
+
+.gender-options .gender-option-card:hover {
+    border-color: var(--primary-color);
+    background: rgba(15, 118, 110, 0.06);
+}
+
+.gender-options .gender-option-card input[type='radio'] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex-shrink: 0;
+    accent-color: var(--primary-color);
+}
+
+.gender-options .gender-option-card span {
+    line-height: 1.2;
+}
+
+.gender-options .gender-option-card:has(input[type='radio']:checked) {
+    border-color: var(--primary-color);
+    background: rgba(15, 118, 110, 0.12);
 }
 
 .gender-options li {
-    display: flex;
+    display: block;
 }
 
 .gender-options label {
@@ -673,8 +720,19 @@ button[type='submit']:active,
 .gender-options input[type="radio"] {
     cursor: pointer;
     accent-color: var(--primary-color);
-    width: auto;
+    width: 16px;
+    height: 16px;
     margin: 0;
+    flex-shrink: 0;
+}
+
+/* Bootstrap's .form-check-input assumes .form-check wrapper and can break this custom grid. */
+.gender-options .form-check-input {
+    float: none;
+    margin-left: 0;
+    margin-top: 0;
+    position: static;
+    vertical-align: middle;
 }
 
 .gender-options input[type="radio"]:checked {
@@ -1845,6 +1903,23 @@ button[type='submit']:active,
     margin: 0 auto;
 }
 
+.hero-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    margin-bottom: 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(14, 165, 233, 0.35);
+    color: var(--primary-dark);
+    box-shadow: 0 8px 16px -12px rgba(15, 118, 110, 0.55);
+}
+
 .hero-title {
     font-family: var(--font-display);
     font-size: 52px;
@@ -1857,6 +1932,18 @@ button[type='submit']:active,
     background-clip: text;
 }
 
+.lang-gu {
+    display: block;
+    margin-top: 8px;
+    font-family: 'Noto Sans Gujarati', var(--font-body);
+    font-size: 0.56em;
+    line-height: 1.45;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: #334155;
+    -webkit-text-fill-color: #334155;
+}
+
 .hero-subtitle {
     font-size: 19px;
     color: var(--text-light);
@@ -1864,11 +1951,106 @@ button[type='submit']:active,
     line-height: 1.7;
 }
 
+.hero-subtitle .lang-gu {
+    font-size: 0.88em;
+    margin-top: 10px;
+    color: #475569;
+    -webkit-text-fill-color: #475569;
+}
+
 .hero-cta {
     display: flex;
     gap: 16px;
     justify-content: center;
     flex-wrap: wrap;
+}
+
+.hero-points {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.hero-points span {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.76);
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    color: var(--text-color);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.hero-points span:nth-child(2n) {
+    border-color: rgba(15, 118, 110, 0.3);
+}
+
+.hero-points span:nth-child(3n) {
+    border-color: rgba(249, 115, 22, 0.35);
+}
+
+.local-highlights {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px 20px 60px;
+}
+
+.local-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 22px;
+}
+
+.local-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.84));
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.local-card::before {
+    content: '';
+    position: absolute;
+    top: -28px;
+    right: -18px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.22), rgba(14, 165, 233, 0));
+}
+
+.local-card h3 {
+    margin-bottom: 10px;
+    font-size: 20px;
+    color: var(--text-color);
+    font-family: var(--font-display);
+}
+
+.local-card p {
+    color: var(--text-light);
+    line-height: 1.7;
+    font-size: 14px;
+}
+
+.local-card .local-gu {
+    margin-top: 10px;
+    font-family: 'Noto Sans Gujarati', var(--font-body);
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.local-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(15, 118, 110, 0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 .btn {
@@ -1946,6 +2128,10 @@ button[type='submit']:active,
     padding: 32px;
     transition: var(--transition);
     box-shadow: var(--shadow);
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
 }
 
 .feature-card:hover {
@@ -2105,24 +2291,54 @@ button[type='submit']:active,
     margin-bottom: 32px;
 }
 
+.cta-content .lang-gu,
+.section-header .lang-gu {
+    font-size: 0.7em;
+    margin-top: 6px;
+    color: #475569;
+    -webkit-text-fill-color: #475569;
+}
+
 @media screen and (max-width: 768px) {
     .home-hero {
         padding: 40px 15px 60px;
     }
+    .hero-location {
+        font-size: 12px;
+        padding: 7px 12px;
+    }
     .hero-title {
         font-size: 36px;
+    }
+    .hero-title .lang-gu {
+        font-size: 0.6em;
     }
     .hero-subtitle {
         font-size: 16px;
         margin-bottom: 30px;
     }
+    .hero-subtitle .lang-gu {
+        font-size: 0.9em;
+    }
     .hero-cta {
         flex-direction: column;
         align-items: stretch;
     }
+    .hero-points {
+        gap: 8px;
+    }
+    .hero-points span {
+        font-size: 12px;
+    }
     .btn {
         padding: 12px 24px;
         font-size: 14px;
+    }
+    .local-highlights {
+        padding: 0 15px 40px;
+    }
+    .local-grid {
+        grid-template-columns: 1fr;
     }
     .features-section {
         padding: 40px 15px;
@@ -2162,4 +2378,72 @@ button[type='submit']:active,
     .cta-content p {
         font-size: 15px;
     }
+}
+
+/* ============================================
+   BOOTSTRAP COMPATIBILITY FIXES
+   ============================================ */
+
+/* Keep dense role-based navbar usable on desktop when many links are present. */
+@media screen and (min-width: 769px) {
+    .navbar-container {
+        min-height: 70px;
+        height: auto;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        align-items: flex-start;
+    }
+
+    .nav-menu {
+        flex-wrap: wrap;
+        row-gap: 8px;
+        column-gap: 14px;
+    }
+}
+
+/* Restore Bootstrap-like controls inside card-based module pages. */
+.content .card form {
+    display: block;
+}
+
+.content .card label,
+.content .card .form-label {
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.content .card input[type='text'],
+.content .card input[type='email'],
+.content .card input[type='password'],
+.content .card input[type='number'],
+.content .card input[type='date'],
+.content .card input[type='time'],
+.content .card input[type='datetime-local'],
+.content .card select,
+.content .card textarea {
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    box-shadow: none;
+}
+
+.content .card button[type='submit'],
+.content .card .btn-submit,
+.content .container .btn {
+    width: auto;
+    text-transform: none;
+    letter-spacing: normal;
+    border-radius: 0.375rem;
+    margin-top: 0;
+    box-shadow: none;
+    font-size: 1rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.content .container .btn.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
 }

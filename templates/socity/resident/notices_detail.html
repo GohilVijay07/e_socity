@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Notice Detail{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>{{ notice.title }}</h3><p class="text-muted">{{ notice.posted_date|date:'d M Y H:i' }}</p><div class="card p-3"><p>{{ notice.content }}</p></div></div>
+{% endblock %}
+

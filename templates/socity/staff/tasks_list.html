@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}My Tasks{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>Assigned Tasks</h3><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Title</th><th>Priority</th><th>Status</th><th>Due</th><th></th></tr></thead><tbody>{% for t in tasks %}<tr><td>{{ t.title }}</td><td>{{ t.get_priority_display }}</td><td>{{ t.get_status_display }}</td><td>{{ t.due_date|default:'-' }}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'socity:staff_task_update' t.id %}">Update</a></td></tr>{% empty %}<tr><td colspan="5" class="text-center">No tasks assigned.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

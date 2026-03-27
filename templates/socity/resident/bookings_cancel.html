@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Cancel Booking{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="card p-4"><h4>Cancel booking for {{ booking.amenity.name }} on {{ booking.booking_date }}?</h4><form method="post">{% csrf_token %}<button class="btn btn-danger">Confirm Cancel</button></form></div></div>
+{% endblock %}
+

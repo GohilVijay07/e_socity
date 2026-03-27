@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Visitor Entries{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="d-flex justify-content-between mb-3"><h3>Visitor Entries</h3><a href="{% url 'socity:staff_visitor_entry' %}" class="btn btn-primary">Register Entry</a></div><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Name</th><th>Unit</th><th>Entry</th><th>Status</th><th></th></tr></thead><tbody>{% for v in visitors %}<tr><td>{{ v.name }}</td><td>{{ v.visit_unit }}</td><td>{{ v.in_time|date:'d M Y H:i' }}</td><td>{{ v.get_status_display }}</td><td>{% if v.status == 'IN' %}<a href="{% url 'socity:staff_visitor_exit' v.id %}" class="btn btn-sm btn-outline-danger">Exit</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="5" class="text-center">No visitor records.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

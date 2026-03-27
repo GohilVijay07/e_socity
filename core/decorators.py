@@ -4,7 +4,12 @@ Role-based access control decorators for e-Society Management System
 from functools import wraps
 from django.shortcuts import redirect
 from django.contrib import messages
-from django.http import HttpResponseForbidden
+from django.core.exceptions import PermissionDenied
+
+
+def _raise_forbidden(message):
+    """Raise a 403 with a consistent UX message."""
+    raise PermissionDenied(message)
 
 
 def role_required(required_role):
@@ -20,8 +25,7 @@ def role_required(required_role):
                 return redirect('login')
             
             if request.user.role != required_role:
-                messages.error(request, 'You do not have permission to access this page.')
-                return redirect('dashboard')
+                _raise_forbidden('You do not have permission to access this page.')
             
             return view_func(request, *args, **kwargs)
         return wrapper
@@ -41,8 +45,7 @@ def multiple_roles_required(*roles):
                 return redirect('login')
             
             if request.user.role not in roles:
-                messages.error(request, 'You do not have permission to access this page.')
-                return redirect('dashboard')
+                _raise_forbidden('You do not have permission to access this page.')
             
             return view_func(request, *args, **kwargs)
         return wrapper
@@ -58,8 +61,7 @@ def admin_required(view_func):
             return redirect('login')
         
         if request.user.role != 'ADMIN':
-            messages.error(request, 'Only administrators can access this page.')
-            return redirect('dashboard')
+            _raise_forbidden('Only administrators can access this page.')
         
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -74,14 +76,14 @@ def resident_required(view_func):
             return redirect('login')
         
         if request.user.role != 'RESIDENT':
-            messages.error(request, 'Only residents can access this page.')
-            return redirect('dashboard')
+            _raise_forbidden('Only residents can access this page.')
         
-        # Check if resident has a resident profile
+        # Profile setup issue is not an authorization issue.
+        # Redirect with guidance instead of returning 403.
         try:
-            resident = request.user.resident_profile
-        except:
-            messages.error(request, 'Resident profile not found.')
+            request.user.resident_profile
+        except Exception:
+            messages.error(request, 'Resident profile not found. Please contact admin to assign your unit/profile.')
             return redirect('dashboard')
         
         return view_func(request, *args, **kwargs)
@@ -97,14 +99,14 @@ def staff_required(view_func):
             return redirect('login')
         
         if request.user.role != 'STAFF':
-            messages.error(request, 'Only staff members can access this page.')
-            return redirect('dashboard')
+            _raise_forbidden('Only staff members can access this page.')
         
-        # Check if staff has a staff profile
+        # Profile setup issue is not an authorization issue.
+        # Redirect with guidance instead of returning 403.
         try:
-            staff = request.user.staff_profile
-        except:
-            messages.error(request, 'Staff profile not found.')
+            request.user.staff_profile
+        except Exception:
+            messages.error(request, 'Staff profile not found. Please contact admin to create your staff profile.')
             return redirect('dashboard')
         
         return view_func(request, *args, **kwargs)
@@ -120,8 +122,7 @@ def visitor_required(view_func):
             return redirect('login')
         
         if request.user.role != 'VISITOR':
-            messages.error(request, 'This page is for visitors only.')
-            return redirect('dashboard')
+            _raise_forbidden('This page is for visitors only.')
         
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -136,8 +137,7 @@ def staff_or_admin_required(view_func):
             return redirect('login')
         
         if request.user.role not in ['ADMIN', 'STAFF']:
-            messages.error(request, 'You do not have permission to access this page.')
-            return redirect('dashboard')
+            _raise_forbidden('You do not have permission to access this page.')
         
         return view_func(request, *args, **kwargs)
     return wrapper

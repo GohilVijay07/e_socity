@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Feature Under Setup{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4 p-md-5 text-center">
+            <h2 class="mb-2">Feature Page Under Setup</h2>
+            <p class="text-muted mb-3">
+                This section is configured in backend routes, but its dedicated UI template is not available yet.
+            </p>
+            {% if missing_template %}
+            <p class="small text-muted mb-4">
+                Missing template: <code>{{ missing_template }}</code>
+            </p>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

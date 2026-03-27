@@ -30,14 +30,14 @@
             <h2>📋 Main Features</h2>
             <div class="feature-cards">
                 <!-- All Roles -->
-                <a href="{% url 'socity:resident_profile' %}" class="feature-card">
+                <a href="{% url 'profile_view' %}" class="feature-card">
                     <span class="icon">👤</span>
                     <span class="title">My Profile</span>
                     <span class="desc">Manage your account information</span>
                 </a>
 
                 <!-- Resident Only Features -->
-                {% if user_role == 'RESIDENT' %}
+                {% if user_role == 'RESIDENT' and has_resident_profile %}
                     <a href="{% url 'socity:resident_bills' %}" class="feature-card">
                         <span class="icon">💳</span>
                         <span class="title">Maintenance Bills</span>
@@ -73,14 +73,21 @@
                         <span class="title">Visitor Log</span>
                         <span class="desc">Track visitors</span>
                     </a>
+                {% elif user_role == 'RESIDENT' and not has_resident_profile %}
+                    <div class="feature-card" style="grid-column: 1 / -1; align-items: flex-start; text-align: left;">
+                        <span class="icon">⚠️</span>
+                        <span class="title">Resident Profile Pending</span>
+                        <span class="desc">Aapka resident profile abhi assign nahi hua hai. Admin se unit/profile assign karwao, tab bills, complaints aur amenities kaam karenge.</span>
+                    </div>
                 {% endif %}
 
-                <!-- All Authenticated Users - Notices -->
-                <a href="{% url 'socity:resident_notices' %}" class="feature-card">
-                    <span class="icon">📢</span>
-                    <span class="title">Society Notices</span>
-                    <span class="desc">Latest announcements</span>
-                </a>
+                {% if user_role == 'RESIDENT' %}
+                    <a href="{% url 'socity:resident_notices' %}" class="feature-card">
+                        <span class="icon">📢</span>
+                        <span class="title">Society Notices</span>
+                        <span class="desc">Latest announcements</span>
+                    </a>
+                {% endif %}
 
                 <!-- Visitor Specific Features -->
                 {% if user_role == 'VISITOR' %}
@@ -97,12 +104,12 @@
         <div class="quick-actions-section">
             <h2>⚡ Quick Actions</h2>
             <div class="actions-list">
-                <a href="{% url 'socity:resident_profile_edit' %}" class="action-item">
+                <a href="{% url 'profile_edit' %}" class="action-item">
                     <span class="icon">✏️</span>
                     <span>Edit Profile</span>
                 </a>
 
-                {% if user_role == 'RESIDENT' %}
+                {% if user_role == 'RESIDENT' and has_resident_profile %}
                     <a href="{% url 'socity:resident_complaint_create' %}" class="action-item">
                         <span class="icon">📝</span>
                         <span>File New Complaint</span>
@@ -115,6 +122,11 @@
                         <span class="icon">💸</span>
                         <span>Pay Bills</span>
                     </a>
+                {% elif user_role == 'RESIDENT' and not has_resident_profile %}
+                    <div class="action-item" style="cursor: default; opacity: 0.9;">
+                        <span class="icon">ℹ️</span>
+                        <span>Please contact admin to complete resident setup</span>
+                    </div>
                 {% elif user_role == 'VISITOR' %}
                     <a href="{% url 'socity:visitor_registration' %}" class="action-item">
                         <span class="icon">📋</span>

@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Create Complaint{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>Submit Complaint</h3><form method="post" class="card p-3">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Submit</button></form></div>
+{% endblock %}
+

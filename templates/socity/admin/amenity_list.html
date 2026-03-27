@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Amenities{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="d-flex justify-content-between mb-3"><h3>Amenities</h3><a href="{% url 'socity:amenity_create' %}" class="btn btn-primary">Add Amenity</a></div><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Name</th><th>Available</th><th></th></tr></thead><tbody>{% for a in amenities %}<tr><td>{{ a.name }}</td><td>{% if a.is_available %}Yes{% else %}No{% endif %}</td><td><a href="{% url 'socity:amenity_edit' a.id %}" class="btn btn-sm btn-outline-primary">Edit</a></td></tr>{% empty %}<tr><td colspan="3" class="text-center">No amenities.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

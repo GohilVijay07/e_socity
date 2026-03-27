@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Residents{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between mb-3"><h3>Residents</h3><a class="btn btn-primary" href="{% url 'socity:resident_create' %}">Add Resident</a></div>
+  <div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Name</th><th>Unit</th><th>Status</th><th>Actions</th></tr></thead><tbody>{% for r in residents %}<tr><td>{{ r.user.get_full_name }}</td><td>{{ r.unit }}</td><td>{{ r.get_status_display }}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'socity:resident_detail' r.id %}">View</a></td></tr>{% empty %}<tr><td colspan="4" class="text-center">No residents found.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% endblock %}
+

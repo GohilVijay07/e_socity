@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Search Visitors{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3 class="mb-3">Search Visitors</h3>
+
+    <form method="get" class="card p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-10">
+                <label for="q" class="form-label">Search Query</label>
+                <input type="text" id="q" name="q" value="{{ query }}" class="form-control" placeholder="Name, phone, purpose, unit, status">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Results</h5>
+        <span class="badge text-bg-secondary">{{ result_count }} found</span>
+    </div>
+
+    <div class="table-responsive card">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Unit</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                    <th>Entry</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for visitor in results %}
+                <tr>
+                    <td>{{ visitor.name }}</td>
+                    <td>{{ visitor.phone }}</td>
+                    <td>{{ visitor.visit_unit }}</td>
+                    <td>{{ visitor.purpose }}</td>
+                    <td>{{ visitor.get_status_display }}</td>
+                    <td>{{ visitor.in_time|date:'d M Y H:i' }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">No visitors matched your search.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

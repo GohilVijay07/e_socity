@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Buildings{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="d-flex justify-content-between mb-3"><h3>Buildings</h3><a class="btn btn-primary" href="{% url 'socity:building_create' %}">Add Building</a></div><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Name</th><th>Wing</th><th>Floors</th><th></th></tr></thead><tbody>{% for b in buildings %}<tr><td>{{ b.name }}</td><td>{{ b.wing_code }}</td><td>{{ b.total_floors }}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'socity:building_edit' b.id %}">Edit</a></td></tr>{% empty %}<tr><td colspan="4" class="text-center">No buildings.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

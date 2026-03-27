@@ -1,0 +1,33 @@
+{% extends 'socity/admin/admin_base.html' %}
+{% block title %}Complaint Detail{% endblock %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+	<div>
+		<h3 class="mb-1">{{ complaint.title }}</h3>
+		<p class="mb-1 text-muted">{{ complaint.description }}</p>
+		<span class="badge text-bg-info">{{ complaint.get_status_display }}</span>
+	</div>
+	<div class="text-end">
+		<a class="btn btn-outline-primary" href="{% url 'socity:complaint_update' complaint.id %}">Update Status</a>
+		<a class="btn btn-outline-secondary" href="{% url 'socity:complaint_assign' complaint.id %}">Assign</a>
+		<a class="btn btn-success" href="{% url 'socity:complaint_close' complaint.id %}">Mark Resolved</a>
+	</div>
+</div>
+
+<hr>
+<h5>Admin Comments & Updates</h5>
+<ul class="list-group">
+	{% for u in updates %}
+	<li class="list-group-item d-flex justify-content-between align-items-start">
+		<div>
+			<div><strong>{{ u.get_status_display }}</strong></div>
+			<div class="text-muted small">{{ u.remarks }}</div>
+		</div>
+		<small class="text-muted">{{ u.update_date|date:'d M Y H:i' }}</small>
+	</li>
+	{% empty %}
+	<li class="list-group-item text-muted">No updates yet.</li>
+	{% endfor %}
+</ul>
+{% endblock %}
+

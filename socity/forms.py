@@ -1,10 +1,115 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
 from .models import (
     Complaint, AmenityBooking, Notice, MaintenanceBill, Resident, 
     Staff, Unit, Building, Amenity, Task, Visitor, VisitorApproval,
     ComplaintUpdate, Transaction
 )
 from core.models import User
+
+
+class _AdminUserCreateMixin:
+    """Shared helpers for admin-created user accounts."""
+
+    @staticmethod
+    def build_unique_username(email):
+        base = email.split('@')[0].strip().lower() or 'user'
+        username = base
+        suffix = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base}{suffix}"
+            suffix += 1
+        return username
+
+
+class AdminUserCreateForm(UserCreationForm):
+    """Admin form for creating any user and assigning role/active status."""
+    role = forms.ChoiceField(
+        choices=[('ADMIN', 'Administrator'), ('RESIDENT', 'Resident'), ('STAFF', 'Security/Staff')],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    is_active = forms.BooleanField(required=False, initial=True, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone', 'gender', 'role', 'is_active']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+
+class AdminUserUpdateForm(forms.ModelForm):
+    """Admin form for updating user profile and role."""
+    role = forms.ChoiceField(
+        choices=[('ADMIN', 'Administrator'), ('RESIDENT', 'Resident'), ('STAFF', 'Security/Staff')],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone', 'gender', 'role', 'is_active']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class AdminResidentCreateForm(forms.Form, _AdminUserCreateMixin):
+    first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    gender = forms.ChoiceField(required=False, choices=User.GENDER_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
+    unit = forms.ModelChoiceField(queryset=Unit.objects.all(), widget=forms.Select(attrs={'class': 'form-control'}))
+    status = forms.ChoiceField(choices=Resident.STATUS_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    vehicle_no = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    member_count = forms.IntegerField(min_value=1, initial=1, widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    move_in_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+    emergency_contact = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    emergency_phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    occupation = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
+
+
+class AdminStaffCreateForm(forms.Form, _AdminUserCreateMixin):
+    first_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    gender = forms.ChoiceField(required=False, choices=User.GENDER_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+
+    designation = forms.ChoiceField(choices=Staff.DESIGNATION_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    department = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    status = forms.ChoiceField(choices=Staff.STATUS_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    join_date = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))
+    salary = forms.DecimalField(required=False, max_digits=10, decimal_places=2, widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    emergency_contact = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    emergency_phone = forms.CharField(max_length=15, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    address = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}))
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
 
 
 # ============= ADMIN FORMS =============
@@ -90,6 +195,22 @@ class MaintenanceBillForm(forms.ModelForm):
 
 class NoticeForm(forms.ModelForm):
     """Form for admin/staff to create/update notices"""
+    SEND_TARGET_CHOICES = [
+        ('ALL', 'All Users'),
+        ('SELECTED', 'Selected Users'),
+    ]
+
+    send_target = forms.ChoiceField(
+        choices=SEND_TARGET_CHOICES,
+        initial='ALL',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    recipients = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-control', 'size': 8})
+    )
+
     class Meta:
         model = Notice
         fields = ['title', 'content', 'priority', 'expiry_date', 'image', 'is_active']
@@ -101,6 +222,51 @@ class NoticeForm(forms.ModelForm):
             'image': forms.FileInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['recipients'].queryset = User.objects.filter(role__in=['ADMIN', 'RESIDENT', 'STAFF']).order_by('first_name', 'last_name', 'username')
+        if self.instance and self.instance.pk:
+            selected_users = User.objects.filter(notice_recipients__notice=self.instance)
+            self.fields['recipients'].initial = selected_users
+            self.fields['send_target'].initial = 'SELECTED' if selected_users.exists() else 'ALL'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        send_target = cleaned_data.get('send_target')
+        recipients = cleaned_data.get('recipients')
+        if send_target == 'SELECTED' and not recipients:
+            self.add_error('recipients', 'Please select at least one user.')
+        return cleaned_data
+
+
+class AdminComplaintUpdateForm(forms.Form):
+    """Admin workflow form for complaint status, assignment, and comments."""
+    status = forms.ChoiceField(
+        choices=[('OPEN', 'Pending'), ('IN_PROGRESS', 'In Progress'), ('RESOLVED', 'Resolved')],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    assigned_to = forms.ModelChoiceField(
+        queryset=User.objects.filter(role='STAFF', is_active=True),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    remarks = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Admin comments'})
+    )
+
+
+class VisitorApprovalActionForm(forms.Form):
+    """Approve/reject visitor entries from admin panel."""
+    action = forms.ChoiceField(
+        choices=[('APPROVED', 'Approve'), ('REJECTED', 'Reject')],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    approval_note = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Reason or notes'})
+    )
 
 
 class AmenityForm(forms.ModelForm):

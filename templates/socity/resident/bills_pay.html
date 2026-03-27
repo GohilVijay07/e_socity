@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Pay Bill{% endblock %}
+{% block content %}
+<div class="container py-4">
+	<h3>Pay Bill for {{ bill.billing_month|date:'M Y' }}</h3>
+	<div class="card p-3">
+		<p>Amount: <strong>{{ bill.amount }}</strong></p>
+		{% if bill.penalty and bill.penalty > 0 %}
+			<p>Penalty: <strong>{{ bill.penalty }}</strong></p>
+		{% endif %}
+
+		<div class="d-flex flex-wrap gap-2 mb-3">
+			<form method="post" action="{% url 'socity:resident_stripe_checkout' bill.id %}">
+				{% csrf_token %}
+				<button class="btn btn-primary" type="submit"><i class="bi bi-credit-card me-1"></i>Pay Online (Stripe)</button>
+			</form>
+		</div>
+
+		<hr>
+		<h6>Manual Payment Entry</h6>
+		<form method="post">
+			{% csrf_token %}
+			{{ form.as_p }}
+			<button class="btn btn-success">Submit Manual Payment</button>
+		</form>
+	</div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,26 @@
+{% extends 'socity/admin/admin_base.html' %}
+{% block title %}Update Complaint{% endblock %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Update Complaint #{{ complaint.id }}</h3>
+    <a class="btn btn-outline-secondary" href="{% url 'socity:complaint_detail' complaint.id %}">Back</a>
+</div>
+
+<form method="post" class="card border-0 bg-light p-3 p-md-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="mb-3">
+        <label class="form-label">Status</label>
+        {{ form.status }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Assign To Staff</label>
+        {{ form.assigned_to }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Admin Comment</label>
+        {{ form.remarks }}
+    </div>
+    <button class="btn btn-primary" type="submit">Save Update</button>
+</form>
+{% endblock %}

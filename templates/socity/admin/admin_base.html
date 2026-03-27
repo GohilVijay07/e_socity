@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .admin-shell {
+        min-height: calc(100vh - 160px);
+    }
+    .admin-sidebar {
+        background: linear-gradient(170deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+        border-radius: 16px;
+        padding: 1rem;
+        color: #e2e8f0;
+        position: sticky;
+        top: 1rem;
+    }
+    .admin-sidebar .brand {
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+    .admin-nav a {
+        display: block;
+        text-decoration: none;
+        color: #cbd5e1;
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        margin-bottom: 0.25rem;
+        transition: all 0.2s ease;
+    }
+    .admin-nav a:hover,
+    .admin-nav a.active {
+        background: rgba(148, 163, 184, 0.2);
+        color: #f8fafc;
+    }
+    .admin-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+</style>
+
+<div class="container py-4 admin-shell">
+    <div class="row g-4">
+        <div class="col-lg-3 col-xl-2">
+            <aside class="admin-sidebar">
+                <div class="brand mb-3">Society Admin</div>
+                <nav class="admin-nav">
+                    <a href="{% url 'socity:admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">Dashboard</a>
+                    <a href="{% url 'socity:user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">Users</a>
+                    <a href="{% url 'socity:complaint_list' %}" class="{% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">Complaints</a>
+                    <a href="{% url 'socity:bill_list' %}" class="{% if request.resolver_match.url_name == 'bill_list' %}active{% endif %}">Bills</a>
+                    <a href="{% url 'socity:notice_list' %}" class="{% if request.resolver_match.url_name == 'notice_list' %}active{% endif %}">Notices</a>
+                    <a href="{% url 'socity:visitor_list' %}" class="{% if request.resolver_match.url_name == 'visitor_list' %}active{% endif %}">Visitors</a>
+                    <a href="{% url 'socity:amenity_booking_list' %}" class="{% if request.resolver_match.url_name == 'amenity_booking_list' %}active{% endif %}">Amenities</a>
+                    <a href="{% url 'socity:reports_dashboard' %}" class="{% if request.resolver_match.url_name == 'reports_dashboard' %}active{% endif %}">Reports</a>
+                </nav>
+            </aside>
+        </div>
+        <div class="col-lg-9 col-xl-10">
+            <section class="admin-card p-3 p-lg-4">
+                {% block admin_content %}{% endblock %}
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

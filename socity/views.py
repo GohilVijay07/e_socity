@@ -2,25 +2,36 @@
 Role-based Views for e-Society Management System
 Handles all views for Admin, Resident, Staff, and Visitor functionalities
 """
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render as django_render, redirect as django_redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse, HttpResponse
 from django.db.models import Q, Count, Sum
+from django.db import transaction
+from django.core.paginator import Paginator
+from django.db.models.functions import TruncMonth, TruncDate
 from django.utils import timezone
+from django.conf import settings
+from django.urls import NoReverseMatch
+from django.template.loader import get_template
+from django.template.loader import render_to_string
+from django.template import TemplateDoesNotExist
 from datetime import datetime, timedelta
 from decimal import Decimal
 import json
+from io import BytesIO
+import csv
 
 from core.decorators import (
     role_required, admin_required, resident_required, 
     staff_required, multiple_roles_required
 )
 from core.models import User
+from core.services import create_notification
 from .models import (
     Unit, Resident, Staff, MaintenanceBill, Visitor, Complaint, 
-    Amenity, AmenityBooking, Notice, Transaction, Building, 
+    Amenity, AmenityBooking, Notice, NoticeRecipient, Transaction, Building,
     Task, VisitorApproval, ComplaintUpdate
 )
 from .forms import (
@@ -28,8 +39,42 @@ from .forms import (
     NoticeForm, AmenityForm, AmenityBookingApprovalForm, ComplaintStatusForm,
     ComplaintForm, AmenityBookingForm, PaymentForm, VisitorApprovalForm,
     ResidentProfileForm, TaskForm, TaskUpdateForm, VisitorRegistrationForm,
-    VisitorExitForm, ComplaintUpdateForm
+    VisitorExitForm, ComplaintUpdateForm, AdminResidentCreateForm,
+    AdminStaffCreateForm, AdminUserCreateForm, AdminUserUpdateForm,
+    AdminComplaintUpdateForm, VisitorApprovalActionForm
 )
+
+
+CORE_ROUTE_NAMES = {
+    'home',
+    'login',
+    'logout',
+    'dashboard',
+    'password_reset',
+    'password_reset_otp_verify',
+    'contact',
+}
+
+
+def redirect(to, *args, **kwargs):
+    """Resolve local socity route names even when namespace is omitted."""
+    if isinstance(to, str) and ':' not in to and to not in CORE_ROUTE_NAMES:
+        try:
+            return django_redirect(f'socity:{to}', *args, **kwargs)
+        except NoReverseMatch:
+            pass
+    return django_redirect(to, *args, **kwargs)
+
+
+def render(request, template_name, context=None, *args, **kwargs):
+    """Render a fallback page when a feature template is not available yet."""
+    try:
+        get_template(template_name)
+    except TemplateDoesNotExist:
+        fallback_context = dict(context or {})
+        fallback_context.setdefault('missing_template', template_name)
+        return django_render(request, 'socity/shared/not_implemented.html', fallback_context, *args, **kwargs)
+    return django_render(request, template_name, context, *args, **kwargs)
 
 
 # ============= ROLE-BASED DASHBOARD =============
@@ -49,64 +94,126 @@ def dashboard(request):
 
 @admin_required
 def admin_dashboard(request):
-    """Admin dashboard with system statistics"""
+    """Admin dashboard with key system statistics."""
+    paid_bills = MaintenanceBill.objects.filter(status='PAID').count()
+    unpaid_bills = MaintenanceBill.objects.exclude(status='PAID').count()
+
+    # Chart 1: Complaints grouped by status.
+    complaint_status_labels = [label for _, label in Complaint.STATUS_CHOICES]
+    complaint_status_data = [Complaint.objects.filter(status=key).count() for key, _ in Complaint.STATUS_CHOICES]
+
+    # Chart 2: Monthly maintenance bill payments based on transactions (last 6 months).
+    current_month_start = timezone.now().date().replace(day=1)
+    month_axis = []
+    temp_month = current_month_start
+    for _ in range(6):
+        month_axis.append(temp_month)
+        if temp_month.month == 1:
+            temp_month = temp_month.replace(year=temp_month.year - 1, month=12)
+        else:
+            temp_month = temp_month.replace(month=temp_month.month - 1)
+    month_axis.reverse()
+
+    monthly_payment_rows = (
+        Transaction.objects.filter(transaction_type='MAINTENANCE')
+        .annotate(month=TruncMonth('transaction_date'))
+        .values('month')
+        .annotate(total=Sum('amount'))
+        .order_by('month')
+    )
+    monthly_payment_map = {
+        row['month'].date().replace(day=1): float(row['total'] or 0)
+        for row in monthly_payment_rows
+        if row['month']
+    }
+    monthly_payment_labels = [m.strftime('%b %Y') for m in month_axis]
+    monthly_payment_data = [monthly_payment_map.get(m, 0) for m in month_axis]
+
+    # Chart 3: Visitor entries per day (last 7 days).
+    day_axis = []
+    today = timezone.now().date()
+    for delta in range(6, -1, -1):
+        day_axis.append(today - timedelta(days=delta))
+
+    visitor_daily_rows = (
+        Visitor.objects.filter(in_time__date__gte=day_axis[0])
+        .annotate(day=TruncDate('in_time'))
+        .values('day')
+        .annotate(total=Count('id'))
+        .order_by('day')
+    )
+    visitor_daily_map = {
+        row['day']: int(row['total'] or 0)
+        for row in visitor_daily_rows
+        if row['day']
+    }
+    visitor_daily_labels = [d.strftime('%d %b') for d in day_axis]
+    visitor_daily_data = [visitor_daily_map.get(d, 0) for d in day_axis]
+
     context = {
+        'total_users': User.objects.filter(role__in=['ADMIN', 'RESIDENT', 'STAFF']).count(),
         'total_residents': Resident.objects.count(),
         'total_staff': Staff.objects.count(),
         'total_units': Unit.objects.count(),
-        'occupied_units': Unit.objects.filter(is_occupied=True).count(),
         'total_complaints': Complaint.objects.count(),
-        'open_complaints': Complaint.objects.filter(status='OPEN').count(),
-        'in_progress_complaints': Complaint.objects.filter(status='IN_PROGRESS').count(),
-        'total_pending_bills': MaintenanceBill.objects.filter(status='PENDING').count(),
-        'total_unpaid_amount': MaintenanceBill.objects.filter(
-            status__in=['PENDING', 'OVERDUE']
-        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0'),
-        'total_paid_bills': MaintenanceBill.objects.filter(status='PAID').count(),
-        'today_visitors': Visitor.objects.filter(in_time__date=timezone.now().date()).count(),
-        'pending_amenity_bookings': AmenityBooking.objects.filter(status='PENDING').count(),
-        'total_amenities': Amenity.objects.count(),
-        'recent_complaints': Complaint.objects.all()[:5],
-        'recent_notices': Notice.objects.all()[:5],
-        'recent_visitors': Visitor.objects.all()[:10],
+        'pending_complaints': Complaint.objects.filter(status__in=['OPEN', 'IN_PROGRESS']).count(),
+        'total_revenue': Transaction.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0'),
+        'paid_bills': paid_bills,
+        'unpaid_bills': unpaid_bills,
+        'pending_bills': unpaid_bills,
+        'visitors_today': Visitor.objects.filter(in_time__date=timezone.now().date()).count(),
+        'complaint_status_labels': complaint_status_labels,
+        'complaint_status_data': complaint_status_data,
+        'monthly_payment_labels': monthly_payment_labels,
+        'monthly_payment_data': monthly_payment_data,
+        'visitor_daily_labels': visitor_daily_labels,
+        'visitor_daily_data': visitor_daily_data,
     }
     return render(request, 'socity/admin/admin_dashboard.html', context)
 
 
 @resident_required
 def resident_dashboard(request):
-    """Resident dashboard with personal information"""
+    """Resident dashboard with personal statistics."""
     try:
         resident = request.user.resident_profile
     except:
         messages.error(request, 'Resident profile not found.')
         return redirect('home')
     
+    billing_start = resident.move_in_date
+    bills_qs = MaintenanceBill.objects.filter(
+        unit=resident.unit,
+        billing_month__gte=billing_start,
+    ).order_by('-billing_month')
+    complaints_qs = Complaint.objects.filter(raised_by=resident).order_by('-created_at')
+    bookings_qs = AmenityBooking.objects.filter(resident=resident).order_by('-booking_date', '-created_at')
+    notices_qs = Notice.objects.filter(is_active=True).order_by('-posted_date')
+
     context = {
-        'resident': resident,
-        'unit': resident.unit,
-        'pending_bills': MaintenanceBill.objects.filter(
-            unit=resident.unit, status='PENDING'
-        ).count(),
-        'total_bill_amount': MaintenanceBill.objects.filter(
-            unit=resident.unit, status='PENDING'
-        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0'),
-        'paid_bills': MaintenanceBill.objects.filter(unit=resident.unit, status='PAID').count(),
-        'my_complaints': Complaint.objects.filter(raised_by=resident).order_by('-created_at')[:5],
-        'open_complaints': Complaint.objects.filter(raised_by=resident, status='OPEN').count(),
-        'my_bookings': AmenityBooking.objects.filter(resident=resident).order_by('-booking_date')[:5],
-        'pending_bookings': AmenityBooking.objects.filter(resident=resident, status='PENDING').count(),
-        'notices': Notice.objects.filter(is_active=True).order_by('-posted_date')[:5],
-        'today_visitors': Visitor.objects.filter(
-            visit_unit=resident.unit, in_time__date=timezone.now().date()
-        ).count(),
+        # Required statistics cards
+        'total_bills': bills_qs.count(),
+        'pending_bills': bills_qs.exclude(status='PAID').count(),
+        'open_complaints': complaints_qs.filter(status__in=['OPEN', 'IN_PROGRESS']).count(),
+        'active_bookings': bookings_qs.filter(status__in=['PENDING', 'CONFIRMED']).count(),
+
+        # Backward-compatible values used elsewhere
+        'my_bills': bills_qs.count(),
+        'my_complaints': complaints_qs.count(),
+        'my_bookings': bookings_qs.count(),
+
+        # Dashboard sections
+        'my_recent_bills': bills_qs[:5],
+        'my_recent_complaints': complaints_qs[:5],
+        'my_recent_bookings': bookings_qs[:5],
+        'recent_notices': notices_qs[:5],
     }
     return render(request, 'socity/resident/resident_dashboard.html', context)
 
 
 @staff_required
 def staff_dashboard(request):
-    """Staff dashboard with assigned tasks and visitors"""
+    """Staff dashboard with operational statistics."""
     try:
         staff = request.user.staff_profile
     except:
@@ -114,18 +221,179 @@ def staff_dashboard(request):
         return redirect('home')
     
     context = {
-        'staff': staff,
-        'assigned_tasks': Task.objects.filter(assigned_to=staff).order_by('-assigned_date')[:5],
-        'pending_tasks': Task.objects.filter(assigned_to=staff, status='PENDING').count(),
-        'in_progress_tasks': Task.objects.filter(assigned_to=staff, status='IN_PROGRESS').count(),
-        'assigned_complaints': Complaint.objects.filter(assigned_to=request.user).order_by('-created_at')[:5],
-        'today_visitors': Visitor.objects.filter(in_time__date=timezone.now().date()).count(),
-        'pending_visitor_exits': Visitor.objects.filter(status='IN').count(),
+        'assigned_complaints': Complaint.objects.filter(assigned_to=request.user).count(),
+        'visitor_entries': Visitor.objects.filter(in_time__date=timezone.now().date()).count(),
+        'daily_tasks': Task.objects.filter(assigned_to=staff, status__in=['PENDING', 'IN_PROGRESS']).count(),
+        'recent_assigned_complaints': Complaint.objects.filter(assigned_to=request.user).order_by('-created_at')[:5],
+        'recent_visitor_entries': Visitor.objects.order_by('-in_time')[:5],
     }
     return render(request, 'socity/staff/staff_dashboard.html', context)
 
 
 # ============= ADMIN: RESIDENT MANAGEMENT =============
+
+@admin_required
+def search_residents(request):
+    """Search residents by name, email, unit, phone, and status."""
+    query = (request.GET.get('q') or '').strip()
+    residents = Resident.objects.select_related('user', 'unit').all()
+
+    if query:
+        residents = residents.filter(
+            Q(user__first_name__icontains=query)
+            | Q(user__last_name__icontains=query)
+            | Q(user__email__icontains=query)
+            | Q(user__phone__icontains=query)
+            | Q(unit__unit_no__icontains=query)
+            | Q(unit__wing__icontains=query)
+            | Q(status__icontains=query)
+        )
+
+    context = {
+        'query': query,
+        'results': residents[:100],
+        'result_count': residents.count(),
+    }
+    return render(request, 'socity/admin/search_residents.html', context)
+
+
+@admin_required
+def search_complaints(request):
+    """Search complaints by title, description, resident, category, and status."""
+    query = (request.GET.get('q') or '').strip()
+    complaints = Complaint.objects.select_related('raised_by__user', 'assigned_to').all()
+
+    if query:
+        complaints = complaints.filter(
+            Q(title__icontains=query)
+            | Q(description__icontains=query)
+            | Q(category__icontains=query)
+            | Q(status__icontains=query)
+            | Q(raised_by__user__first_name__icontains=query)
+            | Q(raised_by__user__last_name__icontains=query)
+            | Q(raised_by__unit__unit_no__icontains=query)
+        )
+
+    context = {
+        'query': query,
+        'results': complaints.order_by('-created_at')[:100],
+        'result_count': complaints.count(),
+    }
+    return render(request, 'socity/admin/search_complaints.html', context)
+
+
+@admin_required
+def search_visitors(request):
+    """Search visitors by name, phone, purpose, unit, and status."""
+    query = (request.GET.get('q') or '').strip()
+    visitors = Visitor.objects.select_related('visit_unit').all()
+
+    if query:
+        visitors = visitors.filter(
+            Q(name__icontains=query)
+            | Q(phone__icontains=query)
+            | Q(purpose__icontains=query)
+            | Q(status__icontains=query)
+            | Q(visit_unit__unit_no__icontains=query)
+            | Q(visit_unit__wing__icontains=query)
+        )
+
+    context = {
+        'query': query,
+        'results': visitors.order_by('-in_time')[:100],
+        'result_count': visitors.count(),
+    }
+    return render(request, 'socity/admin/search_visitors.html', context)
+
+
+# ============= ADMIN: USER MANAGEMENT =============
+
+@admin_required
+def user_list(request):
+    """List all users with role/status filters."""
+    search_query = (request.GET.get('search') or '').strip()
+    role_filter = (request.GET.get('role') or '').strip()
+    active_filter = (request.GET.get('active') or '').strip()
+
+    users = User.objects.filter(role__in=['ADMIN', 'RESIDENT', 'STAFF']).order_by('-date_joined')
+
+    if search_query:
+        users = users.filter(
+            Q(first_name__icontains=search_query)
+            | Q(last_name__icontains=search_query)
+            | Q(username__icontains=search_query)
+            | Q(email__icontains=search_query)
+            | Q(phone__icontains=search_query)
+        )
+    if role_filter:
+        users = users.filter(role=role_filter)
+    if active_filter in ['yes', 'no']:
+        users = users.filter(is_active=(active_filter == 'yes'))
+
+    paginator = Paginator(users, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    context = {
+        'users': page_obj,
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'role_filter': role_filter,
+        'active_filter': active_filter,
+        'role_choices': [('ADMIN', 'Administrator'), ('RESIDENT', 'Resident'), ('STAFF', 'Security/Staff')],
+        'total_users': users.count(),
+    }
+    return render(request, 'socity/admin/user_list.html', context)
+
+
+@admin_required
+def user_create(request):
+    """Create a new user and assign role."""
+    if request.method == 'POST':
+        form = AdminUserCreateForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'User created successfully.')
+            return redirect('user_list')
+    else:
+        form = AdminUserCreateForm()
+    return render(request, 'socity/admin/user_form.html', {'form': form, 'title': 'Add User'})
+
+
+@admin_required
+def user_edit(request, user_id):
+    """Edit user details and role assignment."""
+    user_obj = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        form = AdminUserUpdateForm(request.POST, instance=user_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'User updated successfully.')
+            return redirect('user_list')
+    else:
+        form = AdminUserUpdateForm(instance=user_obj)
+    return render(request, 'socity/admin/user_form.html', {'form': form, 'title': 'Edit User', 'user_obj': user_obj})
+
+
+@admin_required
+def user_delete(request, user_id):
+    """Delete user account."""
+    user_obj = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        user_obj.delete()
+        messages.success(request, 'User deleted successfully.')
+        return redirect('user_list')
+    return render(request, 'socity/admin/user_confirm_delete.html', {'user_obj': user_obj})
+
+
+@admin_required
+def user_toggle_active(request, user_id):
+    """Activate/deactivate user account."""
+    user_obj = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        user_obj.is_active = not user_obj.is_active
+        user_obj.save(update_fields=['is_active'])
+        messages.success(request, f"User {'activated' if user_obj.is_active else 'deactivated'} successfully.")
+    return redirect('user_list')
 
 @admin_required
 def resident_list(request):
@@ -148,6 +416,49 @@ def resident_list(request):
     
     context = {'residents': residents, 'search_query': search_query, 'status_choices': Resident.STATUS_CHOICES}
     return render(request, 'socity/admin/resident_list.html', context)
+
+
+@admin_required
+def resident_create(request):
+    """Create resident account and assign to unit."""
+    if request.method == 'POST':
+        form = AdminResidentCreateForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                email = form.cleaned_data['email']
+                username = form.build_unique_username(email)
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=form.cleaned_data['password'],
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name'],
+                    role='RESIDENT',
+                    phone=form.cleaned_data.get('phone') or '',
+                    gender=form.cleaned_data.get('gender') or None,
+                )
+                unit = form.cleaned_data['unit']
+                Resident.objects.create(
+                    user=user,
+                    unit=unit,
+                    status=form.cleaned_data['status'],
+                    vehicle_no=form.cleaned_data.get('vehicle_no') or '',
+                    member_count=form.cleaned_data['member_count'],
+                    move_in_date=form.cleaned_data['move_in_date'],
+                    emergency_contact=form.cleaned_data.get('emergency_contact') or '',
+                    emergency_phone=form.cleaned_data.get('emergency_phone') or '',
+                    occupation=form.cleaned_data.get('occupation') or '',
+                )
+                if not unit.is_occupied:
+                    unit.is_occupied = True
+                    unit.save(update_fields=['is_occupied'])
+
+            messages.success(request, 'Resident created successfully.')
+            return redirect('resident_list')
+    else:
+        form = AdminResidentCreateForm()
+
+    return render(request, 'socity/admin/resident_create.html', {'form': form})
 
 
 @admin_required
@@ -217,6 +528,46 @@ def staff_list(request):
     context = {'staff_members': staff_members, 'search_query': search_query, 
                'designation_choices': Staff.DESIGNATION_CHOICES, 'status_choices': Staff.STATUS_CHOICES}
     return render(request, 'socity/admin/staff_list.html', context)
+
+
+@admin_required
+def staff_create(request):
+    """Create staff account and profile."""
+    if request.method == 'POST':
+        form = AdminStaffCreateForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                email = form.cleaned_data['email']
+                username = form.build_unique_username(email)
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=form.cleaned_data['password'],
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name'],
+                    role='STAFF',
+                    phone=form.cleaned_data.get('phone') or '',
+                    gender=form.cleaned_data.get('gender') or None,
+                )
+
+                Staff.objects.create(
+                    user=user,
+                    designation=form.cleaned_data['designation'],
+                    department=form.cleaned_data.get('department') or '',
+                    status=form.cleaned_data['status'],
+                    join_date=form.cleaned_data['join_date'],
+                    salary=form.cleaned_data.get('salary'),
+                    emergency_contact=form.cleaned_data.get('emergency_contact') or '',
+                    emergency_phone=form.cleaned_data.get('emergency_phone') or '',
+                    address=form.cleaned_data.get('address') or '',
+                )
+
+            messages.success(request, 'Staff member created successfully.')
+            return redirect('staff_list')
+    else:
+        form = AdminStaffCreateForm()
+
+    return render(request, 'socity/admin/staff_create.html', {'form': form})
 
 
 @admin_required
@@ -363,15 +714,26 @@ def bill_list(request):
     """List all maintenance bills"""
     search_query = request.GET.get('search', '')
     status_filter = request.GET.get('status', '')
+    month_filter = request.GET.get('month', '')
     
     bills = MaintenanceBill.objects.select_related('unit').all()
     
     if search_query:
-        bills = bills.filter(Q(unit__unit_no__icontains=search_query) | Q(unit__wing__icontains=search_query))
+        bills = bills.filter(
+            Q(unit__unit_no__icontains=search_query)
+            | Q(unit__wing__icontains=search_query)
+            | Q(unit__unit_type__icontains=search_query)
+        )
     if status_filter:
         bills = bills.filter(status=status_filter)
+    if month_filter:
+        bills = bills.filter(billing_month__month=month_filter)
+
+    paginator = Paginator(bills, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
     
-    context = {'bills': bills, 'search_query': search_query, 'status_choices': MaintenanceBill.PAYMENT_STATUS_CHOICES,
+    context = {'bills': page_obj, 'page_obj': page_obj, 'search_query': search_query, 'status_choices': MaintenanceBill.PAYMENT_STATUS_CHOICES,
+               'status_filter': status_filter, 'month_filter': month_filter,
                'total_pending_amount': bills.filter(status='PENDING').aggregate(Sum('amount'))['amount__sum'] or Decimal('0')}
     return render(request, 'socity/admin/bill_list.html', context)
 
@@ -382,7 +744,20 @@ def bill_create(request):
     if request.method == 'POST':
         form = MaintenanceBillForm(request.POST)
         if form.is_valid():
-            form.save()
+            bill = form.save()
+
+            residents = Resident.objects.filter(unit=bill.unit).select_related('user')
+            for resident in residents:
+                create_notification(
+                    resident.user,
+                    title='New Maintenance Bill Generated',
+                    message=f'A bill for {bill.billing_month.strftime("%B %Y")} has been generated for your unit.',
+                    notification_type='INFO',
+                    action_url='/resident/bills/',
+                    send_email=True,
+                    email_subject='New Maintenance Bill Generated',
+                )
+
             messages.success(request, 'Maintenance bill created successfully.')
             return redirect('bill_list')
     else:
@@ -431,16 +806,30 @@ def bill_payment_history(request):
 @admin_required
 def complaint_list(request):
     """List all complaints"""
+    search_query = request.GET.get('search', '')
     status_filter = request.GET.get('status', '')
     category_filter = request.GET.get('category', '')
     
     complaints = Complaint.objects.select_related('raised_by', 'assigned_to').all()
+    if search_query:
+        complaints = complaints.filter(
+            Q(title__icontains=search_query)
+            | Q(description__icontains=search_query)
+            | Q(raised_by__user__first_name__icontains=search_query)
+            | Q(raised_by__user__last_name__icontains=search_query)
+            | Q(raised_by__unit__unit_no__icontains=search_query)
+        )
     if status_filter:
         complaints = complaints.filter(status=status_filter)
     if category_filter:
         complaints = complaints.filter(category=category_filter)
+
+    paginator = Paginator(complaints, 10)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
     
-    context = {'complaints': complaints, 'status_choices': Complaint.STATUS_CHOICES,
+    context = {'complaints': page_obj, 'page_obj': page_obj, 'search_query': search_query,
+               'status_filter': status_filter, 'category_filter': category_filter,
+               'status_choices': Complaint.STATUS_CHOICES,
                'category_choices': Complaint.CATEGORY_CHOICES, 'total_complaints': Complaint.objects.count(),
                'open_complaints': Complaint.objects.filter(status='OPEN').count()}
     return render(request, 'socity/admin/complaint_list.html', context)
@@ -456,9 +845,67 @@ def complaint_detail(request, complaint_id):
 
 
 @admin_required
+def complaint_update(request, complaint_id):
+    """Admin update for complaint status, assignment, and comment log."""
+    complaint = get_object_or_404(Complaint, id=complaint_id)
+
+    if request.method == 'POST':
+        form = AdminComplaintUpdateForm(request.POST)
+        if form.is_valid():
+            previous_status = complaint.status
+            complaint.status = form.cleaned_data['status']
+            complaint.assigned_to = form.cleaned_data['assigned_to']
+            if complaint.status == 'RESOLVED' and not complaint.resolved_date:
+                complaint.resolved_date = timezone.now()
+            complaint.save()
+
+            remarks = (form.cleaned_data.get('remarks') or '').strip()
+            if remarks:
+                ComplaintUpdate.objects.create(
+                    complaint=complaint,
+                    updated_by=request.user,
+                    status=complaint.status,
+                    remarks=remarks,
+                )
+
+            create_notification(
+                complaint.raised_by.user,
+                title='Complaint Updated',
+                message=f'Your complaint "{complaint.title}" is now {complaint.get_status_display()}.',
+                notification_type='INFO',
+                action_url=f'/resident/complaints/{complaint.id}/',
+                send_email=True,
+                email_subject='Complaint Status Updated',
+            )
+
+            if complaint.assigned_to and complaint.assigned_to.role == 'STAFF':
+                create_notification(
+                    complaint.assigned_to,
+                    title='Complaint Updated by Admin',
+                    message=(
+                        f'Complaint "{complaint.title}" changed from '
+                        f'{previous_status.replace("_", " ").title()} to {complaint.get_status_display()}.'
+                    ),
+                    notification_type='INFO',
+                    action_url='/staff/complaints/',
+                    send_email=True,
+                    email_subject='Complaint Updated by Admin',
+                )
+
+            messages.success(request, 'Complaint updated successfully.')
+            return redirect('complaint_detail', complaint_id=complaint.id)
+    else:
+        form = AdminComplaintUpdateForm(initial={'status': complaint.status, 'assigned_to': complaint.assigned_to})
+
+    return render(request, 'socity/admin/complaint_update.html', {'form': form, 'complaint': complaint})
+
+
+@admin_required
 def complaint_assign(request, complaint_id):
     """Assign complaint to staff"""
     complaint = get_object_or_404(Complaint, id=complaint_id)
+    priority_map = {1: 'LOW', 2: 'MEDIUM', 3: 'HIGH'}
+
     if request.method == 'POST':
         staff_user_id = request.POST.get('assigned_to')
         if staff_user_id:
@@ -466,6 +913,12 @@ def complaint_assign(request, complaint_id):
             complaint.assigned_to = staff_user
             complaint.status = 'IN_PROGRESS'
             complaint.save()
+            ComplaintUpdate.objects.create(
+                complaint=complaint,
+                updated_by=request.user,
+                status='IN_PROGRESS',
+                remarks=f'Complaint assigned to {staff_user.get_full_name() or staff_user.username}.',
+            )
             
             # Create task for staff
             Task.objects.create(
@@ -474,8 +927,29 @@ def complaint_assign(request, complaint_id):
                 assigned_to=staff_user.staff_profile,
                 assigned_by=request.user,
                 complaint=complaint,
-                priority=complaint.priority,
+                priority=priority_map.get(complaint.priority, 'MEDIUM'),
             )
+
+            create_notification(
+                staff_user,
+                title='New Complaint Assigned',
+                message=f'You were assigned complaint: {complaint.title}',
+                notification_type='WARNING',
+                action_url='/staff/complaints/',
+                send_email=True,
+                email_subject='New Complaint Assigned',
+            )
+
+            create_notification(
+                complaint.raised_by.user,
+                title='Complaint In Progress',
+                message=f'Your complaint "{complaint.title}" has been assigned to staff.',
+                notification_type='INFO',
+                action_url=f'/resident/complaints/{complaint.id}/',
+                send_email=True,
+                email_subject='Complaint Assigned to Staff',
+            )
+
             messages.success(request, 'Complaint assigned successfully.')
             return redirect('complaint_detail', complaint_id=complaint_id)
     
@@ -488,9 +962,26 @@ def complaint_close(request, complaint_id):
     """Close complaint"""
     complaint = get_object_or_404(Complaint, id=complaint_id)
     if request.method == 'POST':
-        complaint.status = 'CLOSED'
+        complaint.status = 'RESOLVED'
         complaint.resolved_date = timezone.now()
         complaint.save()
+        ComplaintUpdate.objects.create(
+            complaint=complaint,
+            updated_by=request.user,
+            status='RESOLVED',
+            remarks='Complaint marked as resolved by admin.',
+        )
+
+        create_notification(
+            complaint.raised_by.user,
+            title='Complaint Resolved',
+            message=f'Your complaint "{complaint.title}" has been marked as resolved.',
+            notification_type='SUCCESS',
+            action_url=f'/resident/complaints/{complaint.id}/',
+            send_email=True,
+            email_subject='Complaint Resolved',
+        )
+
         messages.success(request, 'Complaint closed successfully.')
         return redirect('complaint_detail', complaint_id=complaint_id)
     return render(request, 'socity/admin/complaint_confirm_close.html', {'complaint': complaint})
@@ -516,6 +1007,27 @@ def notice_create(request):
             notice = form.save(commit=False)
             notice.posted_by = request.user
             notice.save()
+
+            if form.cleaned_data.get('send_target') == 'SELECTED':
+                recipients = list(form.cleaned_data['recipients'])
+                NoticeRecipient.objects.bulk_create(
+                    [NoticeRecipient(notice=notice, user=user) for user in recipients],
+                    ignore_conflicts=True,
+                )
+            else:
+                recipients = list(User.objects.filter(role__in=['ADMIN', 'RESIDENT', 'STAFF'], is_active=True))
+
+            for target_user in recipients:
+                create_notification(
+                    target_user,
+                    title=f'New Notice: {notice.title}',
+                    message=notice.content[:220],
+                    notification_type='INFO',
+                    action_url='/dashboard/',
+                    send_email=True,
+                    email_subject='New Society Notice',
+                )
+
             messages.success(request, 'Notice published successfully.')
             return redirect('notice_list')
     else:
@@ -531,6 +1043,14 @@ def notice_edit(request, notice_id):
         form = NoticeForm(request.POST, request.FILES, instance=notice)
         if form.is_valid():
             form.save()
+
+            notice.recipients.all().delete()
+            if form.cleaned_data.get('send_target') == 'SELECTED':
+                NoticeRecipient.objects.bulk_create(
+                    [NoticeRecipient(notice=notice, user=user) for user in form.cleaned_data['recipients']],
+                    ignore_conflicts=True,
+                )
+
             messages.success(request, 'Notice updated successfully.')
             return redirect('notice_list')
     else:
@@ -624,16 +1144,167 @@ def visitor_list(request):
     """List all visitors"""
     search_query = request.GET.get('search', '')
     status_filter = request.GET.get('status', '')
+    approval_filter = request.GET.get('approval', '')
     
     visitors = Visitor.objects.select_related('visit_unit', 'host').all()
     if search_query:
         visitors = visitors.filter(Q(name__icontains=search_query) | Q(phone__icontains=search_query))
     if status_filter:
         visitors = visitors.filter(status=status_filter)
+    if approval_filter:
+        visitors = visitors.filter(approval_status=approval_filter)
     
     context = {'visitors': visitors, 'search_query': search_query, 'status_choices': Visitor.STATUS_CHOICES,
+               'approval_choices': Visitor.APPROVAL_STATUS_CHOICES, 'approval_filter': approval_filter,
                'today_visitors': Visitor.objects.filter(in_time__date=timezone.now().date()).count()}
     return render(request, 'socity/admin/visitor_list.html', context)
+
+
+@admin_required
+def visitor_approval_action(request, visitor_id):
+    """Approve or reject a visitor log entry."""
+    visitor = get_object_or_404(Visitor, id=visitor_id)
+    if request.method == 'POST':
+        form = VisitorApprovalActionForm(request.POST)
+        if form.is_valid():
+            visitor.approval_status = form.cleaned_data['action']
+            visitor.approval_note = form.cleaned_data.get('approval_note', '')
+            if visitor.approval_status == 'REJECTED' and visitor.status == 'IN':
+                visitor.status = 'OUT'
+                visitor.out_time = timezone.now()
+            visitor.save(update_fields=['approval_status', 'approval_note', 'status', 'out_time'])
+            messages.success(request, 'Visitor approval status updated.')
+            return redirect('visitor_list')
+    else:
+        form = VisitorApprovalActionForm(initial={'action': visitor.approval_status, 'approval_note': visitor.approval_note})
+    return render(request, 'socity/admin/visitor_approval_action.html', {'form': form, 'visitor': visitor})
+
+
+@admin_required
+def reports_dashboard(request):
+    """Consolidated reporting for billing, occupancy, and complaints."""
+    total_collection = Transaction.objects.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    pending_amount = MaintenanceBill.objects.exclude(status='PAID').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    paid_amount = MaintenanceBill.objects.filter(status='PAID').aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+    complaints_by_status = {
+        key: Complaint.objects.filter(status=key).count()
+        for key, _ in Complaint.STATUS_CHOICES
+    }
+
+    context = {
+        'total_collection': total_collection,
+        'pending_amount': pending_amount,
+        'paid_amount': paid_amount,
+        'occupied_units': Unit.objects.filter(is_occupied=True).count(),
+        'vacant_units': Unit.objects.filter(is_occupied=False).count(),
+        'complaints_by_status': complaints_by_status,
+        'today_visitors': Visitor.objects.filter(in_time__date=timezone.now().date()).count(),
+        'recent_transactions': Transaction.objects.select_related('resident').order_by('-transaction_date')[:10],
+    }
+    return render(request, 'socity/admin/reports_dashboard.html', context)
+
+
+@admin_required
+def export_report_data(request):
+    """Export core report datasets to CSV or Excel."""
+    dataset = (request.GET.get('dataset') or 'complaints').strip().lower()
+    export_format = (request.GET.get('format') or 'csv').strip().lower()
+
+    dataset_config = {
+        'users': {
+            'headers': ['Username', 'Name', 'Email', 'Role', 'Active', 'Joined'],
+            'rows': lambda: [
+                [u.username, u.get_full_name(), u.email, u.get_role_display(), 'Yes' if u.is_active else 'No', u.date_joined.strftime('%Y-%m-%d %H:%M')]
+                for u in User.objects.filter(role__in=['ADMIN', 'RESIDENT', 'STAFF']).order_by('-date_joined')
+            ],
+        },
+        'complaints': {
+            'headers': ['ID', 'Title', 'Category', 'Status', 'Raised By', 'Assigned To', 'Created At'],
+            'rows': lambda: [
+                [
+                    c.id,
+                    c.title,
+                    c.get_category_display(),
+                    c.get_status_display(),
+                    c.raised_by.user.get_full_name(),
+                    c.assigned_to.get_full_name() if c.assigned_to else '-',
+                    c.created_at.strftime('%Y-%m-%d %H:%M'),
+                ]
+                for c in Complaint.objects.select_related('raised_by__user', 'assigned_to').order_by('-created_at')
+            ],
+        },
+        'bills': {
+            'headers': ['ID', 'Unit', 'Billing Month', 'Amount', 'Penalty', 'Status'],
+            'rows': lambda: [
+                [b.id, str(b.unit), b.billing_month.strftime('%Y-%m-%d'), str(b.amount), str(b.penalty), b.get_status_display()]
+                for b in MaintenanceBill.objects.select_related('unit').order_by('-billing_month')
+            ],
+        },
+        'payments': {
+            'headers': ['ID', 'Resident', 'Amount', 'Type', 'Mode', 'Reference', 'Date'],
+            'rows': lambda: [
+                [
+                    t.id,
+                    t.resident.user.get_full_name(),
+                    str(t.amount),
+                    t.get_transaction_type_display(),
+                    t.get_payment_mode_display(),
+                    t.reference_no,
+                    t.transaction_date.strftime('%Y-%m-%d %H:%M'),
+                ]
+                for t in Transaction.objects.select_related('resident__user').order_by('-transaction_date')
+            ],
+        },
+        'visitors': {
+            'headers': ['ID', 'Name', 'Phone', 'Unit', 'Approval', 'Status', 'In Time', 'Out Time'],
+            'rows': lambda: [
+                [
+                    v.id,
+                    v.name,
+                    v.phone,
+                    str(v.visit_unit),
+                    v.get_approval_status_display(),
+                    v.get_status_display(),
+                    v.in_time.strftime('%Y-%m-%d %H:%M'),
+                    v.out_time.strftime('%Y-%m-%d %H:%M') if v.out_time else '-',
+                ]
+                for v in Visitor.objects.select_related('visit_unit').order_by('-in_time')
+            ],
+        },
+    }
+
+    selected = dataset_config.get(dataset, dataset_config['complaints'])
+    headers = selected['headers']
+    rows = selected['rows']()
+
+    if export_format == 'excel':
+        try:
+            from openpyxl import Workbook
+        except ImportError:
+            messages.error(request, 'openpyxl is required for Excel export. Falling back to CSV.')
+            export_format = 'csv'
+        else:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = dataset.title()
+            ws.append(headers)
+            for row in rows:
+                ws.append(row)
+
+            response = HttpResponse(
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{dataset}_report.xlsx"'
+            wb.save(response)
+            return response
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{dataset}_report.csv"'
+    writer = csv.writer(response)
+    writer.writerow(headers)
+    writer.writerows(rows)
+    return response
 
 
 # ============= RESIDENT VIEWS =============
@@ -678,7 +1349,11 @@ def resident_bills_view(request):
         messages.error(request, 'Resident profile not found.')
         return redirect('home')
     
-    bills = MaintenanceBill.objects.filter(unit=resident.unit).order_by('-billing_month')
+    billing_start = resident.move_in_date
+    bills = MaintenanceBill.objects.filter(
+        unit=resident.unit,
+        billing_month__gte=billing_start,
+    ).order_by('-billing_month')
     context = {
         'bills': bills,
         'total_pending': bills.filter(status='PENDING').aggregate(Sum('amount'))['amount__sum'] or Decimal('0'),
@@ -697,7 +1372,13 @@ def resident_payment_view(request, bill_id):
         messages.error(request, 'Resident profile not found.')
         return redirect('home')
     
-    bill = get_object_or_404(MaintenanceBill, id=bill_id, unit=resident.unit)
+    billing_start = resident.move_in_date
+    bill = get_object_or_404(
+        MaintenanceBill,
+        id=bill_id,
+        unit=resident.unit,
+        billing_month__gte=billing_start,
+    )
     if bill.status == 'PAID':
         messages.info(request, 'This bill has already been paid.')
         return redirect('resident_bills')
@@ -714,6 +1395,16 @@ def resident_payment_view(request, bill_id):
             bill.status = 'PAID'
             bill.payment_date = timezone.now()
             bill.save()
+
+            create_notification(
+                request.user,
+                title='Payment Recorded',
+                message=f'Payment for bill {bill.billing_month.strftime("%B %Y")} was recorded successfully.',
+                notification_type='SUCCESS',
+                action_url='/resident/bills/',
+                send_email=True,
+                email_subject='Payment Recorded Successfully',
+            )
             
             messages.success(request, 'Payment recorded successfully!')
             return redirect('resident_bills')
@@ -721,6 +1412,182 @@ def resident_payment_view(request, bill_id):
         form = PaymentForm(initial={'amount': bill.amount})
     
     return render(request, 'socity/resident/bills_pay.html', {'form': form, 'bill': bill})
+
+
+@resident_required
+def resident_stripe_checkout(request, bill_id):
+    """Create Stripe checkout session for a maintenance bill."""
+    try:
+        resident = request.user.resident_profile
+    except Exception:
+        messages.error(request, 'Resident profile not found.')
+        return redirect('home')
+
+    billing_start = resident.move_in_date
+    bill = get_object_or_404(
+        MaintenanceBill,
+        id=bill_id,
+        unit=resident.unit,
+        billing_month__gte=billing_start,
+    )
+    if bill.status == 'PAID':
+        messages.info(request, 'This bill has already been paid.')
+        return redirect('resident_bills')
+
+    if request.method != 'POST':
+        return redirect('resident_payment', bill_id=bill.id)
+
+    if not settings.STRIPE_SECRET_KEY:
+        messages.error(request, 'Stripe is not configured yet. Please use manual payment.')
+        return redirect('resident_payment', bill_id=bill.id)
+
+    try:
+        import stripe
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        amount_paise = int((bill.amount + bill.penalty) * 100)
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            mode='payment',
+            line_items=[
+                {
+                    'price_data': {
+                        'currency': 'inr',
+                        'product_data': {
+                            'name': f'Maintenance Bill - {bill.unit}',
+                            'description': f'Billing month: {bill.billing_month.strftime("%B %Y")}',
+                        },
+                        'unit_amount': amount_paise,
+                    },
+                    'quantity': 1,
+                }
+            ],
+            metadata={
+                'bill_id': str(bill.id),
+                'resident_id': str(resident.id),
+            },
+            success_url=f"{settings.APP_BASE_URL}/resident/bills/{bill.id}/stripe/success/?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.APP_BASE_URL}/resident/bills/{bill.id}/pay/",
+        )
+        return redirect(checkout_session.url)
+    except Exception:
+        messages.error(request, 'Unable to initiate online payment right now. Please try again.')
+        return redirect('resident_payment', bill_id=bill.id)
+
+
+@resident_required
+def resident_stripe_success(request, bill_id):
+    """Finalize Stripe payment and mark maintenance bill as paid."""
+    try:
+        resident = request.user.resident_profile
+    except Exception:
+        messages.error(request, 'Resident profile not found.')
+        return redirect('home')
+
+    billing_start = resident.move_in_date
+    bill = get_object_or_404(
+        MaintenanceBill,
+        id=bill_id,
+        unit=resident.unit,
+        billing_month__gte=billing_start,
+    )
+    session_id = request.GET.get('session_id')
+    if not session_id or not settings.STRIPE_SECRET_KEY:
+        messages.error(request, 'Invalid payment verification request.')
+        return redirect('resident_payment', bill_id=bill.id)
+
+    try:
+        import stripe
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        session = stripe.checkout.Session.retrieve(session_id)
+    except Exception:
+        messages.error(request, 'Unable to verify payment at the moment.')
+        return redirect('resident_payment', bill_id=bill.id)
+
+    if session.get('payment_status') != 'paid':
+        messages.error(request, 'Payment was not completed.')
+        return redirect('resident_payment', bill_id=bill.id)
+
+    reference_no = f"STRIPE-{session_id[-18:]}"
+    if not Transaction.objects.filter(reference_no=reference_no).exists():
+        Transaction.objects.create(
+            bill=bill,
+            resident=resident,
+            amount=bill.amount + bill.penalty,
+            transaction_type='MAINTENANCE',
+            payment_mode='ONLINE',
+            reference_no=reference_no,
+            remarks='Stripe online payment',
+        )
+
+    bill.status = 'PAID'
+    bill.payment_mode = 'ONLINE'
+    bill.payment_date = timezone.now()
+    bill.save(update_fields=['status', 'payment_mode', 'payment_date'])
+
+    create_notification(
+        request.user,
+        title='Online Payment Successful',
+        message=f'Your online payment for {bill.billing_month.strftime("%B %Y")} is completed.',
+        notification_type='SUCCESS',
+        action_url='/resident/bills/',
+        send_email=True,
+        email_subject='Online Payment Successful',
+    )
+
+    messages.success(request, 'Online payment successful and bill marked as paid.')
+    return redirect('resident_bills')
+
+
+@resident_required
+def resident_bill_pdf_download(request, bill_id):
+    """Generate and download maintenance bill as PDF for resident."""
+    try:
+        resident = request.user.resident_profile
+    except Exception:
+        messages.error(request, 'Resident profile not found.')
+        return redirect('home')
+
+    billing_start = resident.move_in_date
+    bill = get_object_or_404(
+        MaintenanceBill,
+        id=bill_id,
+        unit=resident.unit,
+        billing_month__gte=billing_start,
+    )
+
+    try:
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4
+    except ImportError:
+        messages.error(request, 'PDF library is not available. Please install reportlab.')
+        return redirect('resident_bills')
+
+    pdf_context = {
+        'resident': resident,
+        'bill': bill,
+        'generated_at': timezone.now(),
+    }
+    bill_text = render_to_string('socity/resident/bill_pdf.txt', pdf_context)
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    text = pdf.beginText(40, height - 50)
+    text.setFont('Helvetica', 10)
+
+    # Render template output line-by-line in PDF.
+    for line in bill_text.splitlines():
+        text.textLine(line)
+
+    pdf.drawText(text)
+    pdf.showPage()
+    pdf.save()
+
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="maintenance_bill_{bill.id}.pdf"'
+    return response
 
 
 @resident_required
@@ -749,8 +1616,62 @@ def resident_complaint_create(request):
         if form.is_valid():
             complaint = form.save(commit=False)
             complaint.raised_by = resident
+
+            # Assign to the least-loaded active staff user so new complaints are actionable.
+            staff_user = (
+                User.objects.filter(
+                    role='STAFF',
+                    is_active=True,
+                    staff_profile__status='ACTIVE',
+                )
+                .annotate(
+                    open_assigned_count=Count(
+                        'assigned_complaints',
+                        filter=Q(assigned_complaints__status__in=['OPEN', 'IN_PROGRESS'])
+                    )
+                )
+                .order_by('open_assigned_count', 'id')
+                .first()
+            )
+
+            if not staff_user:
+                staff_user = (
+                    User.objects.filter(role='STAFF', is_active=True)
+                    .annotate(
+                        open_assigned_count=Count(
+                            'assigned_complaints',
+                            filter=Q(assigned_complaints__status__in=['OPEN', 'IN_PROGRESS'])
+                        )
+                    )
+                    .order_by('open_assigned_count', 'id')
+                    .first()
+                )
+
+            complaint.assigned_to = staff_user
             complaint.save()
-            messages.success(request, 'Complaint filed successfully!')
+
+            if staff_user:
+                create_notification(
+                    staff_user,
+                    title='New Complaint Assigned',
+                    message=(
+                        f'Complaint "{complaint.title}" has been assigned to you '
+                        f'from unit {resident.unit}.'
+                    ),
+                    notification_type='INFO',
+                    action_url='/staff/complaints/',
+                    send_email=True,
+                    email_subject='New Complaint Assigned',
+                )
+                messages.success(
+                    request,
+                    f'Complaint filed successfully and assigned to staff: '
+                    f'{staff_user.get_full_name() or staff_user.username}.',
+                )
+            else:
+                messages.success(request, 'Complaint filed successfully!')
+                messages.warning(request, 'No active staff found. Admin will assign this complaint manually.')
+
             return redirect('resident_complaints')
     else:
         form = ComplaintForm()
@@ -794,6 +1715,22 @@ def resident_amenity_book(request, amenity_id=None):
             booking = form.save(commit=False)
             booking.resident = resident
             booking.save()
+
+            admin_users = User.objects.filter(role='ADMIN', is_active=True)
+            for admin_user in admin_users:
+                create_notification(
+                    admin_user,
+                    title='New Amenity Booking Request',
+                    message=(
+                        f"{resident.user.get_full_name() or resident.user.username} requested "
+                        f"{booking.amenity.name} for {booking.booking_date}."
+                    ),
+                    notification_type='INFO',
+                    action_url='/management/amenities/bookings/',
+                    send_email=True,
+                    email_subject='New Amenity Booking Request',
+                )
+
             messages.success(request, 'Amenity booked! Awaiting approval.')
             return redirect('resident_bookings')
     else:
@@ -815,9 +1752,44 @@ def resident_booking_list(request):
 
 
 @resident_required
+def resident_booking_cancel(request, booking_id):
+    """Allow residents to cancel pending/confirmed bookings."""
+    resident = request.user.resident_profile
+    booking = get_object_or_404(AmenityBooking, id=booking_id, resident=resident)
+
+    if request.method == 'POST':
+        if booking.status in ['PENDING', 'CONFIRMED']:
+            booking.status = 'CANCELLED'
+            booking.save(update_fields=['status'])
+
+            admin_users = User.objects.filter(role='ADMIN', is_active=True)
+            for admin_user in admin_users:
+                create_notification(
+                    admin_user,
+                    title='Amenity Booking Cancelled',
+                    message=(
+                        f"{resident.user.get_full_name() or resident.user.username} cancelled "
+                        f"{booking.amenity.name} booking on {booking.booking_date}."
+                    ),
+                    notification_type='WARNING',
+                    action_url='/management/amenities/bookings/',
+                )
+
+            messages.success(request, 'Booking cancelled successfully.')
+        else:
+            messages.warning(request, 'This booking cannot be cancelled now.')
+        return redirect('resident_bookings')
+
+    return render(request, 'socity/resident/bookings_cancel.html', {'booking': booking})
+
+
+@resident_required
 def resident_notice_list(request):
     """View society notices"""
-    notices = Notice.objects.filter(is_active=True).order_by('-posted_date')
+    notices = [
+        notice for notice in Notice.objects.filter(is_active=True).order_by('-posted_date')
+        if notice.is_visible_to(request.user)
+    ]
     return render(request, 'socity/resident/notices_list.html', {'notices': notices})
 
 
@@ -826,6 +1798,19 @@ def resident_notice_detail(request, notice_id):
     """View notice details"""
     notice = get_object_or_404(Notice, id=notice_id, is_active=True)
     return render(request, 'socity/resident/notices_detail.html', {'notice': notice})
+
+
+@resident_required
+def resident_transactions(request):
+    """Resident payment transaction history."""
+    resident = request.user.resident_profile
+    transactions = Transaction.objects.filter(resident=resident).order_by('-transaction_date')
+    total_amount = transactions.aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    return render(
+        request,
+        'socity/resident/transactions_list.html',
+        {'transactions': transactions, 'total_amount': total_amount},
+    )
 
 
 @resident_required
@@ -919,6 +1904,7 @@ def staff_complaint_status_update(request, complaint_id):
     if request.method == 'POST':
         form = ComplaintUpdateForm(request.POST)
         if form.is_valid():
+            previous_status = complaint.status
             update = form.save(commit=False)
             update.complaint = complaint
             update.updated_by = request.user
@@ -926,6 +1912,37 @@ def staff_complaint_status_update(request, complaint_id):
             
             complaint.status = form.cleaned_data['status']
             complaint.save()
+
+            status_label = complaint.get_status_display()
+            updater_name = request.user.get_full_name() or request.user.username
+            action_url = f'/management/complaints/{complaint.id}/'
+
+            for admin_user in User.objects.filter(role='ADMIN', is_active=True):
+                create_notification(
+                    admin_user,
+                    title='Complaint Status Updated by Staff',
+                    message=(
+                        f'Complaint "{complaint.title}" changed from '
+                        f'{previous_status.replace("_", " ").title()} to {status_label} by {updater_name}.'
+                    ),
+                    notification_type='INFO',
+                    action_url=action_url,
+                    send_email=True,
+                    email_subject='Complaint Status Updated',
+                )
+
+            if complaint.raised_by and complaint.raised_by.user_id:
+                create_notification(
+                    complaint.raised_by.user,
+                    title='Your Complaint Status Changed',
+                    message=(
+                        f'Your complaint "{complaint.title}" is now {status_label}.'
+                    ),
+                    notification_type='INFO',
+                    action_url=f'/resident/complaints/{complaint.id}/',
+                    send_email=True,
+                    email_subject='Complaint Status Updated',
+                )
             
             messages.success(request, 'Complaint status updated!')
             return redirect('staff_complaints')
@@ -1053,7 +2070,11 @@ def bills_view(request):
     """View maintenance bills"""
     try:
         resident = Resident.objects.get(user=request.user)
-        bills = MaintenanceBill.objects.filter(unit=resident.unit).order_by('-billing_month')
+        billing_start = resident.move_in_date
+        bills = MaintenanceBill.objects.filter(
+            unit=resident.unit,
+            billing_month__gte=billing_start,
+        ).order_by('-billing_month')
         total_pending = bills.filter(status='PENDING').aggregate(Sum('amount'))['amount__sum'] or 0
         total_paid = bills.filter(status='PAID').aggregate(Sum('amount'))['amount__sum'] or 0
         
@@ -1103,8 +2124,8 @@ def complaint_create(request):
     return render(request, 'core/complaint_create.html', {'form': form})
 
 @login_required
-def complaint_detail(request, pk):
-    """View complaint details"""
+def legacy_complaint_detail(request, pk):
+    """Legacy complaint detail view kept for backward compatibility."""
     try:
         resident = Resident.objects.get(user=request.user)
         complaint = get_object_or_404(Complaint, pk=pk, raised_by=resident)
@@ -1158,7 +2179,10 @@ def bookings_view(request):
 @login_required
 def notices_view(request):
     """View society notices"""
-    notices = Notice.objects.filter(is_active=True).order_by('-posted_date')
+    notices = [
+        notice for notice in Notice.objects.filter(is_active=True).order_by('-posted_date')
+        if notice.is_visible_to(request.user)
+    ]
     context = {'notices': notices}
     return render(request, 'core/notices.html', context)
 

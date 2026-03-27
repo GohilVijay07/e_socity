@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Search Residents{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <h3 class="mb-3">Search Residents</h3>
+
+    <form method="get" class="card p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-10">
+                <label for="q" class="form-label">Search Query</label>
+                <input type="text" id="q" name="q" value="{{ query }}" class="form-control" placeholder="Name, email, unit, phone, status">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Results</h5>
+        <span class="badge text-bg-secondary">{{ result_count }} found</span>
+    </div>
+
+    <div class="table-responsive card">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Unit</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resident in results %}
+                <tr>
+                    <td>{{ resident.user.get_full_name }}</td>
+                    <td>{{ resident.user.email }}</td>
+                    <td>{{ resident.user.phone|default:'-' }}</td>
+                    <td>{{ resident.unit }}</td>
+                    <td>{{ resident.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">No residents matched your search.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

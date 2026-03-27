@@ -1,0 +1,29 @@
+{% extends 'socity/admin/admin_base.html' %}
+{% block title %}Reports Dashboard{% endblock %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+	<h3 class="mb-0">Reports Dashboard</h3>
+	<div class="d-flex gap-2">
+		<a class="btn btn-outline-primary btn-sm" href="{% url 'socity:export_report_data' %}?dataset=complaints&format=csv">Complaints CSV</a>
+		<a class="btn btn-outline-primary btn-sm" href="{% url 'socity:export_report_data' %}?dataset=payments&format=excel">Payments Excel</a>
+	</div>
+</div>
+
+<div class="row g-3 mb-4">
+	<div class="col-md-4"><div class="card p-3"><small>Total Collection</small><h4>{{ total_collection }}</h4></div></div>
+	<div class="col-md-4"><div class="card p-3"><small>Pending Amount</small><h4>{{ pending_amount }}</h4></div></div>
+	<div class="col-md-4"><div class="card p-3"><small>Visitors Today</small><h4>{{ today_visitors }}</h4></div></div>
+</div>
+
+<div class="card p-3">
+	<h5>Recent Transactions</h5>
+	<ul class="mb-0">
+		{% for t in recent_transactions %}
+		<li>{{ t.transaction_date|date:'d M Y H:i' }} - {{ t.resident.user.get_full_name }} - {{ t.amount }}</li>
+		{% empty %}
+		<li>No recent transactions.</li>
+		{% endfor %}
+	</ul>
+</div>
+{% endblock %}
+

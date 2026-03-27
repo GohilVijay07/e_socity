@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Staff{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="d-flex justify-content-between mb-3"><h3>Staff Members</h3><a class="btn btn-primary" href="{% url 'socity:staff_create' %}">Add Staff</a></div><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Name</th><th>Designation</th><th>Status</th><th>Actions</th></tr></thead><tbody>{% for s in staff_members %}<tr><td>{{ s.user.get_full_name }}</td><td>{{ s.get_designation_display }}</td><td>{{ s.get_status_display }}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'socity:staff_detail' s.id %}">View</a></td></tr>{% empty %}<tr><td colspan="4" class="text-center">No staff found.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

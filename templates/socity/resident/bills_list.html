@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}My Bills{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>My Maintenance Bills</h3><p>Pending: <strong>{{ total_pending }}</strong> | Paid: <strong>{{ total_paid }}</strong> | <a href="{% url 'socity:resident_transactions' %}">Payment History</a></p><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Month</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>{% for b in bills %}<tr><td>{{ b.billing_month|date:'M Y' }}</td><td>{{ b.amount }}</td><td>{{ b.get_status_display }}</td><td>{% if b.status != 'PAID' %}<a href="{% url 'socity:resident_payment' b.id %}" class="btn btn-sm btn-success">Pay</a>{% endif %} <a href="{% url 'socity:resident_bill_pdf_download' b.id %}" class="btn btn-sm btn-outline-primary">Download PDF</a></td></tr>{% empty %}<tr><td colspan="4" class="text-center">No bills available.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

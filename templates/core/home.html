@@ -5,8 +5,9 @@
 {% block content %}
 <div class="home-hero">
     <div class="hero-content">
+        <p class="hero-location">Built for Ahmedabad Housing Communities</p>
         <h1 class="hero-title">Effortless Community Management</h1>
-        <p class="hero-subtitle">Your all-in-one platform to manage residents, bills, complaints, visitors, and amenities with complete transparency.</p>
+        <p class="hero-subtitle">A modern e-Society platform tailored for Ahmedabad apartments to manage residents, maintenance, complaints, visitors, and amenities with full transparency.</p>
         <div class="hero-cta">
             {% if user.is_authenticated %}
                 <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
@@ -16,8 +17,34 @@
                 <a href="#features" class="btn btn-secondary">Learn More</a>
             {% endif %}
         </div>
+        <div class="hero-points">
+            <span>Fast Setup for New Societies</span>
+            <span>Role-Based Access for Every Team</span>
+            <span>Designed for Ahmedabad Workflows</span>
+        </div>
     </div>
 </div>
+
+<section class="local-highlights" id="ahmedabad">
+    <div class="section-header">
+        <h2>Why Ahmedabad Societies Choose eSociety</h2>
+        <p>Practical tools built for day-to-day operations in fast-growing residential zones</p>
+    </div>
+    <div class="local-grid">
+        <article class="local-card">
+            <h3>West Ahmedabad Ready</h3>
+            <p>Run committees smoothly across neighborhoods like Satellite, Bodakdev, and Prahladnagar with a single dashboard.</p>
+        </article>
+        <article class="local-card">
+            <h3>Operations Without Paperwork</h3>
+            <p>Move from manual registers to digital billing, complaint tracking, and visitor logs in minutes.</p>
+        </article>
+        <article class="local-card">
+            <h3>Resident-First Communication</h3>
+            <p>Send notices quickly, track updates, and keep owners and tenants on the same page.</p>
+        </article>
+    </div>
+</section>
 
 <section class="about-section" id="about">
     <div class="section-header">
@@ -37,41 +64,41 @@
     </div>
     
     <div class="features-grid">
-        <div class="feature-card">
+        <a class="feature-card" href="{% if user.is_authenticated %}{% if user.role == 'ADMIN' %}{% url 'socity:bill_list' %}{% elif user.role == 'RESIDENT' and has_resident_profile %}{% url 'socity:resident_bills' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
             <div class="feature-icon">💳</div>
             <h3>Maintenance Billing</h3>
             <p>Track monthly bills, payment history, and send automated reminders to residents.</p>
-        </div>
+        </a>
         
-        <div class="feature-card">
+        <a class="feature-card" href="{% if user.is_authenticated %}{% if user.role == 'ADMIN' %}{% url 'socity:unit_list' %}{% elif user.role == 'RESIDENT' %}{% url 'profile_view' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
             <div class="feature-icon">🏢</div>
             <h3>Unit Management</h3>
             <p>Complete database of all flats, owners, tenants, and occupancy tracking.</p>
-        </div>
+        </a>
         
-        <div class="feature-card">
+        <a class="feature-card" href="{% if user.is_authenticated %}{% if user.role == 'ADMIN' %}{% url 'socity:complaint_list' %}{% elif user.role == 'RESIDENT' and has_resident_profile %}{% url 'socity:resident_complaints' %}{% elif user.role == 'STAFF' and has_staff_profile %}{% url 'socity:staff_complaints' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
             <div class="feature-icon">🎯</div>
             <h3>Complaint Management</h3>
             <p>Log, track, and resolve resident complaints with priority-based workflow.</p>
-        </div>
+        </a>
         
-        <div class="feature-card">
+        <a class="feature-card" href="{% if user.is_authenticated %}{% if user.role == 'ADMIN' %}{% url 'socity:visitor_list' %}{% elif user.role == 'RESIDENT' and has_resident_profile %}{% url 'socity:resident_visitor_log' %}{% elif user.role == 'STAFF' and has_staff_profile %}{% url 'socity:staff_visitors' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
             <div class="feature-icon">👥</div>
             <h3>Visitor Tracking</h3>
             <p>Digital register for all visitors with entry/exit timestamps and host details.</p>
-        </div>
+        </a>
         
-        <div class="feature-card">
+        <a class="feature-card" href="{% if user.is_authenticated %}{% if user.role == 'ADMIN' %}{% url 'socity:amenity_booking_list' %}{% elif user.role == 'RESIDENT' and has_resident_profile %}{% url 'socity:resident_amenities' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
             <div class="feature-icon">🏊</div>
             <h3>Amenity Booking</h3>
             <p>Reserve clubhouse, gym, or pool with easy scheduling and conflict prevention.</p>
-        </div>
+        </a>
         
-        <div class="feature-card">
+        <a class="feature-card" href="{% if user.is_authenticated %}{% if user.role == 'ADMIN' %}{% url 'socity:notice_list' %}{% elif user.role == 'RESIDENT' and has_resident_profile %}{% url 'socity:resident_notices' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">
             <div class="feature-icon">📢</div>
             <h3>Notice Board</h3>
             <p>Post important announcements and ensure every resident stays informed.</p>
-        </div>
+        </a>
     </div>
 </section>
 
@@ -116,7 +143,7 @@
             <div class="contact-item">
                 <div class="contact-icon">📍</div>
                 <h4>Visit Us</h4>
-                <p>Mumbai, Maharashtra, India</p>
+                <p>Ahmedabad, Gujarat, India</p>
             </div>
         </div>
     </div>

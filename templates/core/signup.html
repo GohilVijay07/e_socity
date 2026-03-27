@@ -89,7 +89,14 @@
             <div class="form-group">
                 <label>Gender</label>
                 <div class="gender-options">
-                    {{ form.gender }}
+                    <div class="gender-grid">
+                        {% for radio in form.gender %}
+                            <label class="gender-option-card" for="{{ radio.id_for_label }}">
+                                {{ radio.tag }}
+                                <span>{{ radio.choice_label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
                 </div>
                 {% if form.gender.errors %}
                     <div class="errorlist">

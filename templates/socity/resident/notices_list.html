@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Notices{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>Society Notices</h3><div class="list-group">{% for n in notices %}<a class="list-group-item list-group-item-action" href="{% url 'socity:resident_notice_detail' n.id %}"><div class="d-flex justify-content-between"><strong>{{ n.title }}</strong><small>{{ n.posted_date|date:'d M Y' }}</small></div></a>{% empty %}<div class="list-group-item">No notices available.</div>{% endfor %}</div></div>
+{% endblock %}
+

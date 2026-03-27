@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Notices{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="d-flex justify-content-between mb-3"><h3>Notices</h3><a class="btn btn-primary" href="{% url 'socity:notice_create' %}">Create Notice</a></div><div class="list-group">{% for n in notices %}<a class="list-group-item list-group-item-action" href="{% url 'socity:notice_edit' n.id %}"><div class="d-flex justify-content-between"><strong>{{ n.title }}</strong><small>{{ n.posted_date|date:'d M Y' }}</small></div></a>{% empty %}<div class="list-group-item">No notices.</div>{% endfor %}</div></div>
+{% endblock %}
+

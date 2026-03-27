@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <h2 class="mb-1">Staff Dashboard</h2>
+        <p class="text-muted mb-0">Operations overview</p>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Assigned Complaints</h6>
+                    <h3 class="mb-0">{{ assigned_complaints }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Daily Tasks</h6>
+                    <h3 class="mb-0">{{ daily_tasks }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Visitor Entries</h6>
+                    <h3 class="mb-0">{{ visitor_entries }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Assigned Complaints</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_assigned_complaints %}
+                        <ul class="list-group list-group-flush">
+                            {% for complaint in recent_assigned_complaints %}
+                                <li class="list-group-item px-0">
+                                    <div class="fw-semibold">{{ complaint.title }}</div>
+                                    <small class="text-muted">{{ complaint.created_at|date:"d M, Y H:i" }} | {{ complaint.get_status_display }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">No assigned complaints.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Visitor Entries</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_visitor_entries %}
+                        <ul class="list-group list-group-flush">
+                            {% for visitor in recent_visitor_entries %}
+                                <li class="list-group-item px-0">
+                                    <div class="fw-semibold">{{ visitor.name }}</div>
+                                    <small class="text-muted">{{ visitor.visit_unit }} | {{ visitor.in_time|date:"d M, Y H:i" }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">No visitor entries found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

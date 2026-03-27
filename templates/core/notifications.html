@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0"><i class="bi bi-bell me-2"></i>Notifications</h3>
+        <form method="post" action="{% url 'notifications_mark_all_read' %}">{% csrf_token %}
+            <button class="btn btn-sm btn-outline-secondary" type="submit">Mark all as read</button>
+        </form>
+    </div>
+
+    <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Notification filters">
+        <a class="btn {% if notif_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=all">All</a>
+        {% if user.role == 'STAFF' %}
+            <a class="btn {% if notif_filter == 'staff' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=staff">Staff</a>
+        {% else %}
+            <a class="btn {% if notif_filter == 'complaint' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=complaint">Complaint</a>
+            <a class="btn {% if notif_filter == 'billing' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=billing">Billing</a>
+            <a class="btn {% if notif_filter == 'visitor' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=visitor">Visitor</a>
+            <a class="btn {% if notif_filter == 'amenity' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=amenity">Amenity</a>
+            <a class="btn {% if notif_filter == 'staff' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=staff">Staff</a>
+            <a class="btn {% if notif_filter == 'account' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=account">Account</a>
+        {% endif %}
+    </div>
+
+    <div class="list-group">
+        {% for item in page_obj %}
+        <div class="list-group-item d-flex justify-content-between align-items-start {% if not item.is_read %}list-group-item-light{% endif %}">
+            <div class="me-3">
+                <h6 class="mb-1">{{ item.title }}</h6>
+                <p class="mb-1 text-muted">{{ item.message }}</p>
+                <small class="text-muted">{{ item.created_at|date:'d M Y H:i' }}</small>
+            </div>
+            <form method="post" action="{% url 'notification_read' item.id %}">{% csrf_token %}
+                <button class="btn btn-sm btn-outline-primary">Open</button>
+            </form>
+        </div>
+        {% empty %}
+        <div class="list-group-item text-muted">No notifications yet.</div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="mt-3" aria-label="Notifications pagination">
+        <ul class="pagination mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&filter={{ notif_filter }}">Previous</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&filter={{ notif_filter }}">Next</a></li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

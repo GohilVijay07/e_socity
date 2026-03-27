@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Register Visitor Exit{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="card p-4"><h4>Mark exit for {{ visitor.name }}?</h4><form method="post">{% csrf_token %}<button class="btn btn-danger">Confirm Exit</button></form></div></div>
+{% endblock %}
+

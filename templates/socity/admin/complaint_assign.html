@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Assign Complaint{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>Assign Complaint: {{ complaint.title }}</h3><form method="post" class="card p-3">{% csrf_token %}<label class="form-label">Assign to Staff</label><select class="form-select mb-3" name="assigned_to" required>{% for s in staff_users %}<option value="{{ s.id }}">{{ s.get_full_name }} ({{ s.email }})</option>{% endfor %}</select><button class="btn btn-primary">Assign</button></form></div>
+{% endblock %}
+

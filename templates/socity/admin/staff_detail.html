@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Staff Detail{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>{{ staff.user.get_full_name }}</h3><p class="text-muted">{{ staff.get_designation_display }} | {{ staff.get_status_display }}</p><a class="btn btn-primary" href="{% url 'socity:staff_edit' staff.id %}">Edit</a> <a class="btn btn-danger" href="{% url 'socity:staff_delete' staff.id %}">Delete</a></div>
+{% endblock %}
+

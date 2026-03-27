@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Visitor Approvals{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>Pre-Approve Visitor</h3><form method="post" class="card p-3 mb-4">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Save Approval</button></form><div class="card p-3"><h5>My Approvals</h5><ul>{% for a in approvals %}<li>{{ a.visitor_name }} ({{ a.valid_from }} - {{ a.valid_to }}) - {{ a.get_status_display }}</li>{% empty %}<li>No approvals yet.</li>{% endfor %}</ul></div></div>
+{% endblock %}
+

@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Complaint Detail{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>{{ complaint.title }}</h3><p>{{ complaint.description }}</p><p>Status: <strong>{{ complaint.get_status_display }}</strong></p><div class="card p-3"><h5>Updates</h5><ul>{% for u in updates %}<li>{{ u.update_date|date:'d M Y H:i' }} - {{ u.get_status_display }} - {{ u.remarks }}</li>{% empty %}<li>No updates yet.</li>{% endfor %}</ul></div></div>
+{% endblock %}
+

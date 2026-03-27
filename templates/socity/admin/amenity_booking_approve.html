@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Booking Approval{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="card p-4"><h4>{{ booking.amenity.name }} booking by {{ booking.resident.user.get_full_name }}</h4><form method="post">{% csrf_token %}<button name="action" value="approve" class="btn btn-success">Approve</button> <button name="action" value="reject" class="btn btn-danger">Reject</button></form></div></div>
+{% endblock %}
+

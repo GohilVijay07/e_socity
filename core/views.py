@@ -11,11 +11,27 @@ from django.template.loader import render_to_string
 from django.db.models import Q, Sum
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.core.paginator import Paginator
 from datetime import timedelta
 import random
 from .forms import UserSignupForm, UserLoginForm, UserProfileForm, ContactForm, StrictPasswordResetForm
-from .models import User
+from .models import User, EmailVerificationToken, Notification
 from socity.models import Resident
+from .services import send_email_verification, create_notification
+
+
+def get_dashboard_route_for_user(user):
+    if user.is_superuser or user.role == 'ADMIN':
+        return 'socity:admin_dashboard_login_redirect'
+    if user.role == 'RESIDENT':
+        if not Resident.objects.filter(user=user).exists():
+            return None
+        return 'socity:resident_dashboard_login_redirect'
+    if user.role == 'STAFF':
+        if not hasattr(user, 'staff_profile'):
+            return None
+        return 'socity:staff_dashboard_login_redirect'
+    return None
 
 # Create your views here.
 def home(request):
@@ -24,10 +40,69 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    """User dashboard view - Role-based feature display"""
+    """Central dashboard route that redirects users to role-specific dashboards."""
+    role_dashboard_route = get_dashboard_route_for_user(request.user)
+    if role_dashboard_route:
+        return redirect(role_dashboard_route)
+
+    has_resident_profile = Resident.objects.filter(user=request.user).exists()
+    has_staff_profile = hasattr(request.user, 'staff_profile')
+
     context = {
         'user_role': request.user.role,
+        'has_resident_profile': has_resident_profile,
+        'has_staff_profile': has_staff_profile,
     }
+
+    if request.user.role == 'RESIDENT' and not has_resident_profile:
+        messages.info(request, 'Your resident profile is not assigned yet. Please contact admin.')
+        dedupe_since = timezone.now() - timedelta(hours=6)
+        pending_message_key = request.user.username
+        already_notified = Notification.objects.filter(
+            user__role='ADMIN',
+            title='Resident Profile Pending Assignment',
+            message__icontains=pending_message_key,
+            created_at__gte=dedupe_since,
+        ).exists()
+        if not already_notified:
+            for admin_user in User.objects.filter(role='ADMIN', is_active=True):
+                create_notification(
+                    admin_user,
+                    title='Resident Profile Pending Assignment',
+                    message=(
+                        f'Resident user {request.user.get_full_name() or request.user.username} '
+                        f'({request.user.email or request.user.username}) needs unit/profile assignment.'
+                    ),
+                    notification_type='WARNING',
+                    action_url='/management/users/',
+                    send_email=True,
+                    email_subject='Resident Profile Assignment Needed',
+                )
+    if request.user.role == 'STAFF' and not has_staff_profile:
+        messages.info(request, 'Your staff profile is not assigned yet. Please contact admin.')
+        dedupe_since = timezone.now() - timedelta(hours=6)
+        pending_message_key = request.user.username
+        already_notified = Notification.objects.filter(
+            user__role='ADMIN',
+            title='Staff Profile Pending Assignment',
+            message__icontains=pending_message_key,
+            created_at__gte=dedupe_since,
+        ).exists()
+        if not already_notified:
+            for admin_user in User.objects.filter(role='ADMIN', is_active=True):
+                create_notification(
+                    admin_user,
+                    title='Staff Profile Pending Assignment',
+                    message=(
+                        f'Staff user {request.user.get_full_name() or request.user.username} '
+                        f'({request.user.email or request.user.username}) needs staff profile assignment.'
+                    ),
+                    notification_type='WARNING',
+                    action_url='/management/staff/',
+                    send_email=True,
+                    email_subject='Staff Profile Assignment Needed',
+                )
+
     return render(request, 'core/dashboard.html', context)
 
 def userSignupView(request):
@@ -38,6 +113,13 @@ def userSignupView(request):
         form = UserSignupForm(request.POST)
         if form.is_valid():
             user = form.save()
+
+            if user.email:
+                try:
+                    send_email_verification(user, request)
+                    messages.info(request, 'A verification link has been sent to your email.')
+                except Exception:
+                    messages.warning(request, 'Verification email could not be sent right now. You can resend it after login.')
             
             # Send welcome email
             if user.email:
@@ -80,7 +162,10 @@ def userSignupView(request):
 
 def userLoginView(request):
     if request.user.is_authenticated:
-        return redirect('home')  # Redirect to home if already logged in
+        role_dashboard_route = get_dashboard_route_for_user(request.user)
+        if role_dashboard_route:
+            return redirect(role_dashboard_route)
+        return redirect('dashboard')
     
     if request.method == "POST":
         login_data = request.POST.copy()
@@ -96,6 +181,11 @@ def userLoginView(request):
             if user is not None:
                 login(request, user)
                 messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
+                if not user.email_verified:
+                    messages.warning(request, 'Your email is not verified yet. Please verify to secure your account.')
+                role_dashboard_route = get_dashboard_route_for_user(user)
+                if role_dashboard_route:
+                    return redirect(role_dashboard_route)
                 return redirect('dashboard')
             else:
                 messages.error(request, 'Invalid username or password.')
@@ -247,6 +337,121 @@ def password_reset_otp_verify_view(request):
         return redirect('login')
 
     return render(request, 'core/otp_verify.html')
+
+
+def email_verify_view(request, token):
+    """Verify user email using a one-time token link."""
+    token_obj = EmailVerificationToken.objects.select_related('user').filter(token=token).first()
+    if not token_obj:
+        messages.error(request, 'Invalid verification link.')
+        return redirect('login')
+
+    if not token_obj.is_valid():
+        messages.error(request, 'Verification link has expired or was already used.')
+        return redirect('login')
+
+    user = token_obj.user
+    user.email_verified = True
+    user.save(update_fields=['email_verified'])
+    token_obj.is_used = True
+    token_obj.save(update_fields=['is_used'])
+
+    messages.success(request, 'Email verified successfully. You can now continue securely.')
+    return redirect('login')
+
+
+@login_required
+def resend_verification_email_view(request):
+    """Resend verification email for currently logged-in user."""
+    if request.user.email_verified:
+        messages.info(request, 'Your email is already verified.')
+        return redirect('dashboard')
+
+    try:
+        send_email_verification(request.user, request)
+        messages.success(request, 'Verification email sent. Please check your inbox.')
+    except Exception:
+        messages.error(request, 'Unable to send verification email right now. Please try later.')
+    return redirect('dashboard')
+
+
+@login_required
+def notifications_view(request):
+    """In-app notification inbox for current user."""
+    notifications_qs = Notification.objects.filter(user=request.user).order_by('-created_at')
+    notif_filter = (request.GET.get('filter') or 'all').strip().lower()
+
+    filter_map = {
+        'complaint': ['complaint'],
+        'billing': ['bill', 'billing', 'payment'],
+        'visitor': ['visitor', 'entry', 'gate'],
+        'amenity': ['amenity', 'booking'],
+        'staff': ['staff', 'task', 'assigned'],
+        'account': ['email', 'verification', 'password', 'account', 'profile'],
+    }
+
+    if notif_filter in filter_map:
+        query = Q()
+        for keyword in filter_map[notif_filter]:
+            query |= Q(title__icontains=keyword) | Q(message__icontains=keyword)
+        notifications_qs = notifications_qs.filter(query)
+    else:
+        notif_filter = 'all'
+
+    # Keep staff notification UX minimal: only All and Staff buckets.
+    if request.user.role == 'STAFF':
+        if notif_filter not in ['all', 'staff']:
+            notif_filter = 'all'
+        if notif_filter == 'staff':
+            staff_query = Q()
+            for keyword in filter_map['staff']:
+                staff_query |= Q(title__icontains=keyword) | Q(message__icontains=keyword)
+            notifications_qs = notifications_qs.filter(staff_query)
+
+    paginator = Paginator(notifications_qs, 12)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+    return render(request, 'core/notifications.html', {'page_obj': page_obj, 'notif_filter': notif_filter})
+
+
+@login_required
+def notification_read_view(request, notification_id):
+    """Mark a single notification as read."""
+    note = get_object_or_404(Notification, id=notification_id, user=request.user)
+    if request.method == 'POST':
+        note.is_read = True
+        note.save(update_fields=['is_read'])
+        if note.action_url:
+            return redirect(note.action_url)
+    return redirect('notifications')
+
+
+@login_required
+def notifications_mark_all_read_view(request):
+    """Mark all notifications as read for current user."""
+    if request.method == 'POST':
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return redirect('notifications')
+
+
+@login_required
+def profile_view(request):
+    """View current user's profile details."""
+    resident = Resident.objects.filter(user=request.user).select_related('unit').first()
+    return render(request, 'core/profile.html', {'resident': resident, 'user': request.user})
+
+
+@login_required
+def profile_edit(request):
+    """Edit user profile including image upload."""
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('profile_view')
+    else:
+        form = UserProfileForm(instance=request.user)
+    return render(request, 'core/profile_edit.html', {'form': form})
 
 
 # Django Built-in Password Reset Views (Link-based)

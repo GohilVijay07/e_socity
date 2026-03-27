@@ -92,6 +92,12 @@ class Visitor(models.Model):
         ('IN', 'Entered'),
         ('OUT', 'Exited'),
     ]
+
+    APPROVAL_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
     
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
@@ -99,6 +105,8 @@ class Visitor(models.Model):
     host = models.ForeignKey(Resident, on_delete=models.SET_NULL, null=True, blank=True)
     purpose = models.CharField(max_length=200)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='IN')
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='PENDING')
+    approval_note = models.CharField(max_length=255, blank=True)
     in_time = models.DateTimeField(auto_now_add=True)
     out_time = models.DateTimeField(null=True, blank=True)
     vehicle_no = models.CharField(max_length=20, blank=True, null=True)
@@ -216,6 +224,26 @@ class Notice(models.Model):
     
     def __str__(self):
         return self.title
+
+    def is_visible_to(self, user):
+        """Global notices are visible to all users; targeted notices require membership."""
+        if not user or not user.is_authenticated:
+            return False
+        return not self.recipients.exists() or self.recipients.filter(user=user).exists()
+
+
+class NoticeRecipient(models.Model):
+    """Optional targeting for notices to selected users."""
+    notice = models.ForeignKey(Notice, on_delete=models.CASCADE, related_name='recipients')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notice_recipients')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['notice', 'user']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.notice.title} -> {self.user.get_full_name() or self.user.username}"
 
 
 # 10. Payment/Transaction

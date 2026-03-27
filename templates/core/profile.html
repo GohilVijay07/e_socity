@@ -6,7 +6,7 @@
 <div class="profile-container">
     <div class="profile-header">
         <h1>My Profile</h1>
-        <a href="{% url 'socity:resident_profile_edit' %}" class="btn-edit">Edit Profile</a>
+        <a href="{% url 'profile_edit' %}" class="btn-edit">Edit Profile</a>
     </div>
 
     <div class="profile-content">
@@ -98,22 +98,58 @@
         <div class="quick-links">
             <h2>Quick Links</h2>
             <div class="links-grid">
-                <a href="{% url 'socity:resident_bills' %}" class="quick-link">
-                    <span class="icon">💳</span>
-                    <span>View Bills</span>
-                </a>
-                <a href="{% url 'socity:resident_complaints' %}" class="quick-link">
-                    <span class="icon">📝</span>
-                    <span>My Complaints</span>
-                </a>
-                <a href="{% url 'socity:resident_bookings' %}" class="quick-link">
-                    <span class="icon">📋</span>
-                    <span>My Bookings</span>
-                </a>
-                <a href="{% url 'socity:resident_bills' %}" class="quick-link">
-                    <span class="icon">📊</span>
-                    <span>Payment History</span>
-                </a>
+                {% if user.role == 'RESIDENT' %}
+                    <a href="{% url 'socity:resident_bills' %}" class="quick-link">
+                        <span class="icon">💳</span>
+                        <span>View Bills</span>
+                    </a>
+                    <a href="{% url 'socity:resident_complaints' %}" class="quick-link">
+                        <span class="icon">📝</span>
+                        <span>My Complaints</span>
+                    </a>
+                    <a href="{% url 'socity:resident_bookings' %}" class="quick-link">
+                        <span class="icon">📋</span>
+                        <span>My Bookings</span>
+                    </a>
+                    <a href="{% url 'socity:resident_transactions' %}" class="quick-link">
+                        <span class="icon">📊</span>
+                        <span>Payment History</span>
+                    </a>
+                {% elif user.role == 'ADMIN' %}
+                    <a href="{% url 'socity:user_list' %}" class="quick-link">
+                        <span class="icon">👥</span>
+                        <span>Manage Users</span>
+                    </a>
+                    <a href="{% url 'socity:bill_list' %}" class="quick-link">
+                        <span class="icon">💳</span>
+                        <span>Manage Bills</span>
+                    </a>
+                    <a href="{% url 'socity:complaint_list' %}" class="quick-link">
+                        <span class="icon">🛠️</span>
+                        <span>Manage Complaints</span>
+                    </a>
+                    <a href="{% url 'socity:notice_list' %}" class="quick-link">
+                        <span class="icon">📢</span>
+                        <span>Manage Notices</span>
+                    </a>
+                {% elif user.role == 'STAFF' %}
+                    <a href="{% url 'socity:staff_tasks' %}" class="quick-link">
+                        <span class="icon">✅</span>
+                        <span>My Tasks</span>
+                    </a>
+                    <a href="{% url 'socity:staff_complaints' %}" class="quick-link">
+                        <span class="icon">📝</span>
+                        <span>Assigned Complaints</span>
+                    </a>
+                    <a href="{% url 'socity:staff_visitors' %}" class="quick-link">
+                        <span class="icon">🚶</span>
+                        <span>Visitor Entries</span>
+                    </a>
+                    <a href="{% url 'socity:staff_dashboard' %}" class="quick-link">
+                        <span class="icon">📋</span>
+                        <span>Staff Dashboard</span>
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

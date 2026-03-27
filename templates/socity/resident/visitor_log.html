@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Visitor Log{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>Visitors to My Unit</h3><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Name</th><th>Phone</th><th>Purpose</th><th>Entry</th><th>Exit</th></tr></thead><tbody>{% for v in visitors %}<tr><td>{{ v.name }}</td><td>{{ v.phone }}</td><td>{{ v.purpose }}</td><td>{{ v.in_time|date:'d M Y H:i' }}</td><td>{{ v.out_time|default:'-' }}</td></tr>{% empty %}<tr><td colspan="5" class="text-center">No visitor records.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

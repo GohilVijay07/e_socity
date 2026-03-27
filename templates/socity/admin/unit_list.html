@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Units{% endblock %}
+{% block content %}
+<div class="container py-4"><div class="d-flex justify-content-between mb-3"><h3>Units / Flats</h3><a class="btn btn-primary" href="{% url 'socity:unit_create' %}">Add Unit</a></div><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Unit</th><th>Type</th><th>Occupied</th><th></th></tr></thead><tbody>{% for u in units %}<tr><td>{{ u }}</td><td>{{ u.get_unit_type_display }}</td><td>{% if u.is_occupied %}Yes{% else %}No{% endif %}</td><td><a class="btn btn-sm btn-outline-primary" href="{% url 'socity:unit_edit' u.id %}">Edit</a></td></tr>{% empty %}<tr><td colspan="4" class="text-center">No units.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+

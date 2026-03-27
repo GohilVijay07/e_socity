@@ -1,0 +1,64 @@
+{% extends 'socity/admin/admin_base.html' %}
+{% block title %}Visitor Logs{% endblock %}
+{% block admin_content %}
+<h3 class="mb-3">Visitor Logs</h3>
+
+<form method="get" class="row g-2 mb-3">
+	<div class="col-md-4">
+		<input type="text" class="form-control" name="search" value="{{ search_query }}" placeholder="Search by name or phone">
+	</div>
+	<div class="col-md-3">
+		<select name="status" class="form-select">
+			<option value="">Entry Status</option>
+			{% for value, label in status_choices %}
+				<option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+			{% endfor %}
+		</select>
+	</div>
+	<div class="col-md-3">
+		<select name="approval" class="form-select">
+			<option value="">Approval Status</option>
+			{% for value, label in approval_choices %}
+				<option value="{{ value }}" {% if approval_filter == value %}selected{% endif %}>{{ label }}</option>
+			{% endfor %}
+		</select>
+	</div>
+	<div class="col-md-2">
+		<button class="btn btn-outline-secondary w-100">Filter</button>
+	</div>
+</form>
+
+<div class="table-responsive card">
+	<table class="table table-striped mb-0">
+		<thead>
+			<tr>
+				<th>Name</th>
+				<th>Phone</th>
+				<th>Unit</th>
+				<th>Entry</th>
+				<th>Exit</th>
+				<th>Entry Status</th>
+				<th>Approval</th>
+				<th class="text-end">Action</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for v in visitors %}
+			<tr>
+				<td>{{ v.name }}</td>
+				<td>{{ v.phone }}</td>
+				<td>{{ v.visit_unit }}</td>
+				<td>{{ v.in_time|date:'d M Y H:i' }}</td>
+				<td>{{ v.out_time|default:'-' }}</td>
+				<td>{{ v.get_status_display }}</td>
+				<td>{{ v.get_approval_status_display }}</td>
+				<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'socity:visitor_approval_action' v.id %}">Approve/Reject</a></td>
+			</tr>
+			{% empty %}
+			<tr><td colspan="8" class="text-center">No visitors.</td></tr>
+			{% endfor %}
+		</tbody>
+	</table>
+</div>
+{% endblock %}
+

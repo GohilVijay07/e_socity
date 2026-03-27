@@ -1,0 +1,24 @@
+eSociety Management System
+Maintenance Bill Receipt
+
+Generated On: {{ generated_at|date:'d M Y, H:i' }}
+
+Resident Details
+Name: {{ resident.user.get_full_name }}
+Email: {{ resident.user.email }}
+Phone: {{ resident.user.phone|default:'-' }}
+Unit: {{ resident.unit }}
+Status: {{ resident.get_status_display }}
+
+Bill Details
+Bill ID: {{ bill.id }}
+Billing Month: {{ bill.billing_month|date:'F Y' }}
+Amount: Rs. {{ bill.amount }}
+Penalty: Rs. {{ bill.penalty }}
+Payment Status: {{ bill.get_status_display }}
+Payment Date: {% if bill.payment_date %}{{ bill.payment_date|date:'d M Y, H:i' }}{% else %}Not Paid{% endif %}
+Payment Mode: {{ bill.payment_mode|default:'-' }}
+
+Notes
+- This is a system-generated maintenance bill PDF.
+- Please keep this copy for your records.

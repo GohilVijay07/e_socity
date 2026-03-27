@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>My Profile</h3><div class="card p-3"><p><strong>Name:</strong> {{ user.get_full_name }}</p><p><strong>Unit:</strong> {{ resident.unit }}</p><p><strong>Status:</strong> {{ resident.get_status_display }}</p><a class="btn btn-primary" href="{% url 'socity:resident_profile_edit' %}">Edit Profile</a></div></div>
+{% endblock %}
+

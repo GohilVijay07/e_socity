@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Amenity Bookings{% endblock %}
+{% block content %}
+<div class="container py-4"><h3>Amenity Bookings</h3><div class="table-responsive card"><table class="table table-striped mb-0"><thead><tr><th>Resident</th><th>Amenity</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>{% for b in bookings %}<tr><td>{{ b.resident.user.get_full_name }}</td><td>{{ b.amenity.name }}</td><td>{{ b.booking_date }}</td><td>{{ b.get_status_display }}</td><td><a href="{% url 'socity:amenity_booking_approve' b.id %}" class="btn btn-sm btn-outline-primary">Action</a></td></tr>{% empty %}<tr><td colspan="5" class="text-center">No bookings.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
+
