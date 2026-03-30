@@ -10,15 +10,18 @@ from django.http import HttpResponseForbidden, JsonResponse, HttpResponse
 from django.db.models import Q, Count, Sum
 from django.db import transaction
 from django.core.paginator import Paginator
+from django.core.mail import send_mail
 from django.db.models.functions import TruncMonth, TruncDate
 from django.utils import timezone
 from django.conf import settings
-from django.urls import NoReverseMatch
+from django.urls import NoReverseMatch, reverse
 from django.template.loader import get_template
 from django.template.loader import render_to_string
 from django.template import TemplateDoesNotExist
 from datetime import datetime, timedelta
 from decimal import Decimal
+import uuid
+import random
 import json
 from io import BytesIO
 import csv
@@ -28,7 +31,7 @@ from core.decorators import (
     staff_required, multiple_roles_required
 )
 from core.models import User
-from core.services import create_notification
+from core.services import create_notification, ensure_user_role_setup
 from .models import (
     Unit, Resident, Staff, MaintenanceBill, Visitor, Complaint, 
     Amenity, AmenityBooking, Notice, NoticeRecipient, Transaction, Building,
@@ -351,7 +354,8 @@ def user_create(request):
     if request.method == 'POST':
         form = AdminUserCreateForm(request.POST)
         if form.is_valid():
-            form.save()
+            user_obj = form.save()
+            ensure_user_role_setup(user_obj)
             messages.success(request, 'User created successfully.')
             return redirect('user_list')
     else:
@@ -366,7 +370,8 @@ def user_edit(request, user_id):
     if request.method == 'POST':
         form = AdminUserUpdateForm(request.POST, instance=user_obj)
         if form.is_valid():
-            form.save()
+            user_obj = form.save()
+            ensure_user_role_setup(user_obj)
             messages.success(request, 'User updated successfully.')
             return redirect('user_list')
     else:
@@ -1381,9 +1386,42 @@ def resident_payment_view(request, bill_id):
     )
     if bill.status == 'PAID':
         messages.info(request, 'This bill has already been paid.')
-        return redirect('resident_bills')
+        return redirect('socity:resident_bills')
     
     if request.method == 'POST':
+        if request.POST.get('quick_pay') == '1':
+            reference_no = f"MANUAL-{uuid.uuid4().hex[:10].upper()}"
+            while Transaction.objects.filter(reference_no=reference_no).exists():
+                reference_no = f"MANUAL-{uuid.uuid4().hex[:10].upper()}"
+
+            Transaction.objects.create(
+                bill=bill,
+                resident=resident,
+                amount=bill.amount + (bill.penalty or Decimal('0')),
+                transaction_type='MAINTENANCE',
+                payment_mode='UPI',
+                reference_no=reference_no,
+                remarks='Quick manual payment recorded by resident',
+            )
+
+            bill.status = 'PAID'
+            bill.payment_mode = 'UPI'
+            bill.payment_date = timezone.now()
+            bill.save(update_fields=['status', 'payment_mode', 'payment_date'])
+
+            create_notification(
+                request.user,
+                title='Payment Recorded',
+                message=f'Payment for bill {bill.billing_month.strftime("%B %Y")} was recorded successfully.',
+                notification_type='SUCCESS',
+                action_url='/resident/bills/',
+                send_email=True,
+                email_subject='Payment Recorded Successfully',
+            )
+
+            messages.success(request, 'Bill paid successfully!')
+            return redirect('resident_bills')
+
         form = PaymentForm(request.POST)
         if form.is_valid():
             transaction = form.save(commit=False)
@@ -1409,9 +1447,13 @@ def resident_payment_view(request, bill_id):
             messages.success(request, 'Payment recorded successfully!')
             return redirect('resident_bills')
     else:
-        form = PaymentForm(initial={'amount': bill.amount})
+        form = PaymentForm(initial={'amount': bill.amount + (bill.penalty or Decimal('0')), 'payment_mode': 'UPI'})
     
-    return render(request, 'socity/resident/bills_pay.html', {'form': form, 'bill': bill})
+    return render(
+        request,
+        'socity/resident/bills_pay.html',
+        {'form': form, 'bill': bill, 'stripe_configured': bool(settings.STRIPE_SECRET_KEY)},
+    )
 
 
 @resident_required
@@ -1473,6 +1515,198 @@ def resident_stripe_checkout(request, bill_id):
     except Exception:
         messages.error(request, 'Unable to initiate online payment right now. Please try again.')
         return redirect('resident_payment', bill_id=bill.id)
+
+
+@resident_required
+def resident_demo_online_checkout(request, bill_id):
+    """Simulated online checkout flow for demo/testing environments."""
+    try:
+        resident = request.user.resident_profile
+    except Exception:
+        messages.error(request, 'Resident profile not found.')
+        return redirect('home')
+
+    billing_start = resident.move_in_date
+    bill = get_object_or_404(
+        MaintenanceBill,
+        id=bill_id,
+        unit=resident.unit,
+        billing_month__gte=billing_start,
+    )
+    if bill.status == 'PAID':
+        messages.info(request, 'This bill has already been paid.')
+        return redirect('socity:resident_bills')
+
+    session_key = f"demo_payment_{request.user.id}_{bill.id}"
+    pending = request.session.get(session_key)
+
+    def _mask_email(email):
+        if not email or '@' not in email:
+            return email
+        local, domain = email.split('@', 1)
+        if len(local) > 2:
+            local = local[:2] + ('*' * max(len(local) - 2, 1))
+        else:
+            local = local[:1] + '*'
+        return f'{local}@{domain}'
+
+    def _send_payment_otp(recipient_email, otp_value):
+        send_mail(
+            subject='e-Socity Payment OTP',
+            message=(
+                f'Hello {request.user.get_full_name() or request.user.username},\n\n'
+                f'Your OTP for maintenance bill payment is: {otp_value}\n\n'
+                'This OTP is for demo payment verification and should not be shared.'
+            ),
+            from_email=getattr(settings, 'EMAIL_HOST_USER', ''),
+            recipient_list=[recipient_email],
+            fail_silently=False,
+        )
+
+    if request.method == 'POST':
+        stage = request.POST.get('stage') or 'card'
+
+        if stage == 'card':
+            card_name = (request.POST.get('card_name') or '').strip()
+            card_number = ''.join(ch for ch in (request.POST.get('card_number') or '') if ch.isdigit())
+            expiry = (request.POST.get('expiry') or '').strip()
+            cvv = ''.join(ch for ch in (request.POST.get('cvv') or '') if ch.isdigit())
+
+            if not card_name:
+                messages.error(request, 'Card holder name is required.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+            if len(card_number) != 16:
+                messages.error(request, 'Enter a valid 16-digit card number.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+            if len(cvv) not in [3, 4]:
+                messages.error(request, 'Enter a valid CVV.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+            if '/' not in expiry or len(expiry) != 5:
+                messages.error(request, 'Enter expiry in MM/YY format.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            otp = str(random.randint(100000, 999999))
+            recipient_email = (request.user.email or '').strip()
+            if not recipient_email:
+                messages.error(request, 'Email address not found. Please update your profile email to receive OTP.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            request.session[session_key] = {
+                'card_name': card_name,
+                'card_last4': card_number[-4:],
+                'expiry': expiry,
+                'otp': otp,
+                'email': recipient_email,
+                'created_at': timezone.now().isoformat(),
+                'sent_at': timezone.now().isoformat(),
+            }
+            request.session.modified = True
+
+            try:
+                _send_payment_otp(recipient_email, otp)
+            except Exception:
+                request.session.pop(session_key, None)
+                messages.error(request, 'Unable to send OTP email right now. Please try again in a moment.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            messages.info(request, f'OTP has been sent to your email: {_mask_email(recipient_email)}')
+            return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+        if stage == 'resend_otp':
+            pending = request.session.get(session_key)
+            if not pending:
+                messages.error(request, 'Payment session expired. Please enter card details again.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            recipient_email = (pending.get('email') or '').strip()
+            if not recipient_email:
+                request.session.pop(session_key, None)
+                messages.error(request, 'Email details missing. Please restart payment.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            sent_at_str = pending.get('sent_at') or ''
+            can_resend = True
+            if sent_at_str:
+                try:
+                    sent_at = datetime.fromisoformat(sent_at_str)
+                    can_resend = timezone.now() >= (sent_at + timedelta(seconds=30))
+                except ValueError:
+                    can_resend = True
+
+            if not can_resend:
+                messages.warning(request, 'Please wait 30 seconds before requesting another OTP.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            otp = str(random.randint(100000, 999999))
+            pending['otp'] = otp
+            pending['sent_at'] = timezone.now().isoformat()
+            request.session[session_key] = pending
+            request.session.modified = True
+
+            try:
+                _send_payment_otp(recipient_email, otp)
+            except Exception:
+                messages.error(request, 'Unable to resend OTP email right now. Please try again in a moment.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            messages.success(request, f'New OTP sent to {_mask_email(recipient_email)}')
+            return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+        if stage == 'otp':
+            otp_value = (request.POST.get('otp') or '').strip()
+            pending = request.session.get(session_key)
+            if not pending:
+                messages.error(request, 'Payment session expired. Please enter card details again.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+            if otp_value != pending.get('otp'):
+                messages.error(request, 'Invalid OTP. Please try again.')
+                return redirect('socity:resident_demo_online_checkout', bill_id=bill.id)
+
+            reference_no = f"DEMO-{uuid.uuid4().hex[:12].upper()}"
+            while Transaction.objects.filter(reference_no=reference_no).exists():
+                reference_no = f"DEMO-{uuid.uuid4().hex[:12].upper()}"
+
+            Transaction.objects.create(
+                bill=bill,
+                resident=resident,
+                amount=bill.amount + (bill.penalty or Decimal('0')),
+                transaction_type='MAINTENANCE',
+                payment_mode='ONLINE',
+                reference_no=reference_no,
+                remarks=(
+                    'Demo online payment (simulated gateway) '
+                    f'| Card ****{pending.get("card_last4", "0000")}'
+                ),
+            )
+
+            bill.status = 'PAID'
+            bill.payment_mode = 'ONLINE'
+            bill.payment_date = timezone.now()
+            bill.save(update_fields=['status', 'payment_mode', 'payment_date'])
+
+            create_notification(
+                request.user,
+                title='Online Payment Successful (Demo)',
+                message=f'Your demo online payment for {bill.billing_month.strftime("%B %Y")} is completed.',
+                notification_type='SUCCESS',
+                action_url='/resident/bills/',
+                send_email=True,
+                email_subject='Demo Online Payment Successful',
+            )
+
+            request.session.pop(session_key, None)
+            messages.success(request, f'Demo online payment successful. Ref: {reference_no}')
+            return redirect('socity:resident_bills')
+
+    return render(
+        request,
+        'socity/resident/bills_pay_demo.html',
+        {
+            'bill': bill,
+            'payable_amount': bill.amount + (bill.penalty or Decimal('0')),
+            'pending_payment': pending,
+        },
+    )
 
 
 @resident_required
@@ -2008,28 +2242,83 @@ def staff_visitor_exit(request, visitor_id):
 @login_required
 def visitor_registration(request):
     """Visitor registration form (guest/new visitor)"""
+    if request.user.role != 'VISITOR':
+        messages.error(request, 'This page is available for visitor accounts only.')
+        return redirect('dashboard')
+
+    recent_entries = Visitor.objects.none()
+    if request.user.phone:
+        recent_entries = Visitor.objects.filter(phone=request.user.phone).order_by('-in_time')[:5]
+
     if request.method == 'POST':
         form = VisitorRegistrationForm(request.POST)
         if form.is_valid():
             visitor = form.save(commit=False)
-            unit_no = form.cleaned_data.get('unit_no')
+            unit_no = (form.cleaned_data.get('unit_no') or '').strip()
             try:
-                visitor.visit_unit = Unit.objects.get(unit_no=unit_no)
+                visitor.visit_unit = Unit.objects.get(unit_no__iexact=unit_no)
                 visitor.save()
+
+                for admin_user in User.objects.filter(role='ADMIN', is_active=True):
+                    create_notification(
+                        admin_user,
+                        title='New Visitor Entry Registered',
+                        message=(
+                            f'Visitor {visitor.name} registered entry for {visitor.visit_unit} '
+                            f'({visitor.purpose}).'
+                        ),
+                        notification_type='INFO',
+                        action_url='/management/visitors/',
+                        send_email=True,
+                        email_subject='New Visitor Entry Registered',
+                    )
+
                 messages.success(request, 'Entry registered! Welcome!')
-                return redirect('visitor_entry')
+                entry_url = reverse('socity:visitor_entry')
+                return redirect(f"{entry_url}?visitor_id={visitor.id}")
             except Unit.DoesNotExist:
                 messages.error(request, 'Unit not found.')
     else:
-        form = VisitorRegistrationForm()
+        form = VisitorRegistrationForm(initial={'phone': request.user.phone or ''})
     
-    return render(request, 'socity/visitor/entry_registration.html', {'form': form})
+    context = {
+        'form': form,
+        'recent_entries': recent_entries,
+        'recent_notices': Notice.objects.filter(is_active=True).order_by('-posted_date')[:4],
+    }
+    return render(request, 'socity/visitor/entry_registration.html', context)
 
 
 @login_required
 def visitor_entry_form(request):
     """Visitor entry form (for checking in)"""
-    return render(request, 'socity/visitor/entry_form.html')
+    if request.user.role != 'VISITOR':
+        messages.error(request, 'This page is available for visitor accounts only.')
+        return redirect('dashboard')
+
+    visitor_id = request.GET.get('visitor_id')
+    visitor = None
+    if visitor_id:
+        try:
+            visitor = Visitor.objects.get(id=visitor_id)
+            if request.user.phone and visitor.phone != request.user.phone:
+                visitor = None
+        except Visitor.DoesNotExist:
+            visitor = None
+
+    recent_entries = Visitor.objects.none()
+    if request.user.phone:
+        recent_entries = Visitor.objects.filter(phone=request.user.phone).order_by('-in_time')[:10]
+
+    return render(
+        request,
+        'socity/visitor/entry_form.html',
+        {
+            'visitor': visitor,
+            'recent_entries': recent_entries,
+            'recent_notices': Notice.objects.filter(is_active=True).order_by('-posted_date')[:4],
+        },
+    )
 
 
 

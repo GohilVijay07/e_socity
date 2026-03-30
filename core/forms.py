@@ -7,7 +7,8 @@ class UserSignupForm(UserCreationForm):
         required=True,
         widget=forms.EmailInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your email address'
+            'placeholder': 'Enter your email address',
+            'required': 'required',
         })
     )
     
@@ -16,7 +17,8 @@ class UserSignupForm(UserCreationForm):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'First Name'
+            'placeholder': 'First Name',
+            'required': 'required',
         })
     )
     
@@ -25,7 +27,8 @@ class UserSignupForm(UserCreationForm):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Last Name'
+            'placeholder': 'Last Name',
+            'required': 'required',
         })
     )
     
@@ -42,7 +45,11 @@ class UserSignupForm(UserCreationForm):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Phone Number (10-15 digits)'
+            'placeholder': 'Phone Number (10 digits)',
+            'maxlength': '10',
+            'minlength': '10',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]{10}',
         })
     )
     
@@ -50,7 +57,8 @@ class UserSignupForm(UserCreationForm):
         label='Password',
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter password'
+            'placeholder': 'Enter password',
+            'required': 'required',
         })
     )
     
@@ -58,7 +66,8 @@ class UserSignupForm(UserCreationForm):
         label='Confirm Password',
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Confirm password'
+            'placeholder': 'Confirm password',
+            'required': 'required',
         })
     )
     
@@ -86,9 +95,12 @@ class UserSignupForm(UserCreationForm):
         return email
     
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
-        if phone and not phone.replace(' ', '').replace('-', '').isdigit():
-            raise forms.ValidationError('Phone number should contain only digits.')
+        phone = (self.cleaned_data.get('phone') or '').strip().replace(' ', '').replace('-', '')
+        if phone:
+            if not phone.isdigit():
+                raise forms.ValidationError('Phone number should contain only digits.')
+            if len(phone) != 10:
+                raise forms.ValidationError('Phone number must be exactly 10 digits.')
         return phone
 
     def clean_role(self):
@@ -124,13 +136,15 @@ class UserLoginForm(AuthenticationForm):
     username = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your email or username'
+            'placeholder': 'Enter your email or username',
+            'required': 'required',
         })
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your password'
+            'placeholder': 'Enter your password',
+            'required': 'required',
         })
     )
 

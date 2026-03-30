@@ -41,6 +41,7 @@
         </div>
         <form method="post">
             {% csrf_token %}
+            <p class="form-note" style="margin-bottom: 14px;">Fields marked with <span style="color:#dc2626;">*</span> are required.</p>
             
             {% if form.non_field_errors %}
                 <div class="errorlist">
@@ -51,7 +52,7 @@
             {% endif %}
             
             <div class="form-group">
-                <label for="{{ form.email.id_for_label }}">Email Address</label>
+                <label for="{{ form.email.id_for_label }}">Email Address <span style="color:#dc2626;">*</span></label>
                 {{ form.email }}
                 {% if form.email.errors %}
                     <div class="errorlist">
@@ -63,7 +64,7 @@
             </div>
             
             <div class="form-group">
-                <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                <label for="{{ form.first_name.id_for_label }}">First Name <span style="color:#dc2626;">*</span></label>
                 {{ form.first_name }}
                 {% if form.first_name.errors %}
                     <div class="errorlist">
@@ -75,7 +76,7 @@
             </div>
             
             <div class="form-group">
-                <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                <label for="{{ form.last_name.id_for_label }}">Last Name <span style="color:#dc2626;">*</span></label>
                 {{ form.last_name }}
                 {% if form.last_name.errors %}
                     <div class="errorlist">
@@ -120,7 +121,7 @@
             </div>
             
             <div class="form-group">
-                <label for="{{ form.role.id_for_label }}">Your Role</label>
+                <label for="{{ form.role.id_for_label }}">Your Role <span style="color:#dc2626;">*</span></label>
                 {{ form.role }}
                 {% if form.role.errors %}
                     <div class="errorlist">
@@ -132,7 +133,7 @@
             </div>
             
             <div class="form-group">
-                <label for="{{ form.password1.id_for_label }}">Password</label>
+                <label for="{{ form.password1.id_for_label }}">Password <span style="color:#dc2626;">*</span></label>
                 <div class="password-wrapper">
                     {{ form.password1 }}
                     <button class="password-toggle-btn" type="button" title="Show password">👁️</button>
@@ -150,7 +151,7 @@
             </div>
             
             <div class="form-group">
-                <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                <label for="{{ form.password2.id_for_label }}">Confirm Password <span style="color:#dc2626;">*</span></label>
                 <div class="password-wrapper">
                     {{ form.password2 }}
                     <button class="password-toggle-btn" type="button" title="Show password">👁️</button>
@@ -176,4 +177,15 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
+    if (!phoneInput) return;
+
+    phoneInput.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
+});
+</script>
 {% endblock %}

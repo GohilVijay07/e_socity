@@ -41,6 +41,7 @@
         </div>
         <form method="post">
             {% csrf_token %}
+            <p class="form-note" style="margin-bottom: 14px;">Fields marked with <span style="color:#dc2626;">*</span> are required.</p>
             
             {% if form.non_field_errors %}
                 <div class="errorlist">
@@ -51,7 +52,7 @@
             {% endif %}
             
             <div class="form-group">
-                <label for="{{ form.username.id_for_label }}">Email or Username</label>
+                <label for="{{ form.username.id_for_label }}">Email or Username <span style="color:#dc2626;">*</span></label>
                 {{ form.username }}
                 {% if form.username.errors %}
                     <div class="errorlist">
@@ -63,7 +64,7 @@
             </div>
             
             <div class="form-group">
-                <label for="{{ form.password.id_for_label }}">Password</label>
+                <label for="{{ form.password.id_for_label }}">Password <span style="color:#dc2626;">*</span></label>
                 <div class="password-wrapper">
                     {{ form.password }}
                     <button class="password-toggle-btn" type="button" title="Show password">👁️</button>

@@ -12,6 +12,7 @@ urlpatterns = [
     # Home & Authentication
     path('', core_views.home, name='home'),
     path('signup/', core_views.userSignupView, name='signup'),
+    path('signup/otp-verify/', core_views.signup_otp_verify_view, name='signup_otp_verify'),
     path('login/', core_views.userLoginView, name='login'),
     path('logout/', core_views.userLogoutView, name='logout'),
     path('dashboard/', core_views.dashboard, name='dashboard'),

@@ -39,7 +39,7 @@ from .views import (
     
     # Resident Features
     resident_bills_view, resident_payment_view, resident_bill_pdf_download,
-    resident_stripe_checkout, resident_stripe_success,
+    resident_stripe_checkout, resident_stripe_success, resident_demo_online_checkout,
     resident_complaint_list, resident_complaint_create, resident_complaint_detail,
     resident_amenities_view, resident_amenity_book, resident_booking_list, resident_booking_cancel,
     resident_notice_list, resident_notice_detail,
@@ -150,6 +150,7 @@ urlpatterns = [
     path('resident/bills/<int:bill_id>/pay/', resident_payment_view, name='resident_payment'),
     path('resident/bills/<int:bill_id>/stripe/checkout/', resident_stripe_checkout, name='resident_stripe_checkout'),
     path('resident/bills/<int:bill_id>/stripe/success/', resident_stripe_success, name='resident_stripe_success'),
+    path('resident/bills/<int:bill_id>/online/demo/', resident_demo_online_checkout, name='resident_demo_online_checkout'),
     path('resident/bills/<int:bill_id>/pdf/', resident_bill_pdf_download, name='resident_bill_pdf_download'),
     
     # Complaints

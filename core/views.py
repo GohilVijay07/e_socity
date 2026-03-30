@@ -17,7 +17,7 @@ import random
 from .forms import UserSignupForm, UserLoginForm, UserProfileForm, ContactForm, StrictPasswordResetForm
 from .models import User, EmailVerificationToken, Notification
 from socity.models import Resident
-from .services import send_email_verification, create_notification
+from .services import send_email_verification, create_notification, ensure_user_role_setup
 
 
 def get_dashboard_route_for_user(user):
@@ -108,49 +108,55 @@ def dashboard(request):
 def userSignupView(request):
     if request.user.is_authenticated:
         return redirect('home')  # Redirect to home if already logged in
-    
+
     if request.method == "POST":
         form = UserSignupForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            otp = f"{random.randint(100000, 999999)}"
+            expiry = timezone.now() + timedelta(minutes=10)
+            payload = {
+                'email': form.cleaned_data['email'],
+                'first_name': form.cleaned_data['first_name'],
+                'last_name': form.cleaned_data['last_name'],
+                'gender': form.cleaned_data.get('gender') or '',
+                'phone': form.cleaned_data.get('phone') or '',
+                'role': form.cleaned_data['role'],
+                'password': form.cleaned_data['password1'],
+            }
 
-            if user.email:
-                try:
-                    send_email_verification(user, request)
-                    messages.info(request, 'A verification link has been sent to your email.')
-                except Exception:
-                    messages.warning(request, 'Verification email could not be sent right now. You can resend it after login.')
-            
-            # Send welcome email
-            if user.email:
-                try:
-                    print(f"\n📧 Sending welcome email to {user.email}...")
-                    # Render HTML email template
-                    html_content = render_to_string('core/emails/welcome_email.html', {
-                        'user_name': user.get_full_name() or user.username,
-                        'user_email': user.email,
-                        'user_role': user.get_role_display(),
-                        'login_time': timezone.now().strftime('%B %d, %Y at %I:%M %p'),
-                        'dashboard_url': request.build_absolute_uri('/dashboard/'),
-                    })
-                    
-                    # Create email with HTML content
-                    email = EmailMultiAlternatives(
-                        subject='Welcome to e_socity',
-                        body='Welcome! Your account has been created successfully.',
-                        from_email=settings.EMAIL_HOST_USER,
-                        to=[user.email],
-                    )
-                    email.attach_alternative(html_content, "text/html")
-                    email.send(fail_silently=False)
-                    print(f"✅ Welcome email sent successfully to {user.email}")
-                    messages.success(request, 'Account created! Welcome email sent.')
-                except Exception as exc:
-                    print(f"❌ Email Error: {exc}")
-                    messages.warning(request, f'Account created but email could not be sent.')
-            
-            messages.success(request, 'Account created successfully! Please login to continue.')
-            return redirect('login')  # Redirect to login page after successful signup
+            request.session['signup_payload'] = payload
+            request.session['signup_otp'] = otp
+            request.session['signup_otp_expiry'] = expiry.isoformat()
+            request.session.modified = True
+
+            try:
+                html_content = render_to_string('core/emails/signup_otp_email.html', {
+                    'user_name': f"{payload['first_name']} {payload['last_name']}".strip() or payload['email'],
+                    'otp': otp,
+                    'expiry_minutes': 10,
+                })
+                email_msg = EmailMultiAlternatives(
+                    subject='e-Socity Signup OTP',
+                    body=f'Your signup OTP is {otp}. It is valid for 10 minutes.',
+                    from_email=settings.EMAIL_HOST_USER,
+                    to=[payload['email']],
+                )
+                email_msg.attach_alternative(html_content, 'text/html')
+                email_msg.send(fail_silently=False)
+            except Exception:
+                for key in ['signup_payload', 'signup_otp', 'signup_otp_expiry']:
+                    request.session.pop(key, None)
+                messages.error(request, 'OTP email could not be sent. Please try again.')
+                return render(request, 'core/signup.html', {'form': form})
+
+            masked_email = payload['email']
+            if '@' in masked_email:
+                local, domain = masked_email.split('@', 1)
+                local = (local[:2] + '*' * max(len(local) - 2, 1)) if len(local) > 2 else (local[:1] + '*')
+                masked_email = f'{local}@{domain}'
+
+            messages.success(request, f'OTP sent to {masked_email}. Verify OTP to complete signup.')
+            return redirect('signup_otp_verify')
         else:
             for field, errors in form.errors.items():
                 for error in errors:
@@ -159,6 +165,168 @@ def userSignupView(request):
         form = UserSignupForm()
     
     return render(request, 'core/signup.html', {'form': form})
+
+
+def signup_otp_verify_view(request):
+    payload = request.session.get('signup_payload')
+    if not payload:
+        messages.error(request, 'Please fill signup form first.')
+        return redirect('signup')
+
+    if request.method == 'POST':
+        action = (request.POST.get('action') or 'verify').strip()
+
+        if action == 'resend':
+            otp = f"{random.randint(100000, 999999)}"
+            expiry = timezone.now() + timedelta(minutes=10)
+            request.session['signup_otp'] = otp
+            request.session['signup_otp_expiry'] = expiry.isoformat()
+            request.session.modified = True
+
+            try:
+                html_content = render_to_string('core/emails/signup_otp_email.html', {
+                    'user_name': f"{payload.get('first_name', '')} {payload.get('last_name', '')}".strip() or payload.get('email', ''),
+                    'otp': otp,
+                    'expiry_minutes': 10,
+                })
+                email_msg = EmailMultiAlternatives(
+                    subject='e-Socity Signup OTP',
+                    body=f'Your signup OTP is {otp}. It is valid for 10 minutes.',
+                    from_email=settings.EMAIL_HOST_USER,
+                    to=[payload.get('email')],
+                )
+                email_msg.attach_alternative(html_content, 'text/html')
+                email_msg.send(fail_silently=False)
+            except Exception:
+                messages.error(request, 'Unable to resend OTP right now. Please try again.')
+                return redirect('signup_otp_verify')
+
+            messages.success(request, 'A new OTP has been sent to your email.')
+            return redirect('signup_otp_verify')
+
+        otp = (request.POST.get('otp') or '').strip()
+        saved_otp = request.session.get('signup_otp')
+        expiry_raw = request.session.get('signup_otp_expiry')
+
+        if not saved_otp or not expiry_raw:
+            messages.error(request, 'OTP session expired. Please signup again.')
+            return redirect('signup')
+
+        expiry = timezone.datetime.fromisoformat(expiry_raw)
+        if timezone.is_naive(expiry):
+            expiry = timezone.make_aware(expiry, timezone.get_current_timezone())
+
+        if timezone.now() > expiry:
+            messages.error(request, 'OTP has expired. Please request a new OTP.')
+            return redirect('signup_otp_verify')
+
+        if otp != saved_otp:
+            messages.error(request, 'Invalid OTP. Please try again.')
+            return redirect('signup_otp_verify')
+
+        if User.objects.filter(email__iexact=payload.get('email', '')).exists():
+            for key in ['signup_payload', 'signup_otp', 'signup_otp_expiry']:
+                request.session.pop(key, None)
+            messages.error(request, 'This email is already registered. Please login.')
+            return redirect('login')
+
+        signup_form = UserSignupForm({
+            'email': payload.get('email', ''),
+            'first_name': payload.get('first_name', ''),
+            'last_name': payload.get('last_name', ''),
+            'gender': payload.get('gender', ''),
+            'phone': payload.get('phone', ''),
+            'role': payload.get('role', 'RESIDENT'),
+            'password1': payload.get('password', ''),
+            'password2': payload.get('password', ''),
+        })
+
+        if not signup_form.is_valid():
+            for key in ['signup_payload', 'signup_otp', 'signup_otp_expiry']:
+                request.session.pop(key, None)
+            messages.error(request, 'Signup details are invalid or expired. Please fill signup form again.')
+            return redirect('signup')
+
+        user = signup_form.save()
+
+        setup_result = ensure_user_role_setup(user)
+        for admin_user in User.objects.filter(role='ADMIN', is_active=True):
+            if setup_result.get('resident_created'):
+                create_notification(
+                    admin_user,
+                    title='New Resident Auto-Onboarded',
+                    message=(
+                        f'{user.get_full_name() or user.username} signed up as Resident and was auto-assigned '
+                        f'to unit {setup_result.get("unit_assigned")}. '
+                        f'{"New auto unit created." if setup_result.get("unit_auto_created") else ""}'
+                    ),
+                    notification_type='INFO',
+                    action_url='/management/residents/',
+                    send_email=True,
+                    email_subject='New Resident Auto-Onboarded',
+                )
+            elif setup_result.get('staff_created'):
+                create_notification(
+                    admin_user,
+                    title='New Staff Auto-Onboarded',
+                    message=f'{user.get_full_name() or user.username} signed up as Staff and profile was auto-created.',
+                    notification_type='INFO',
+                    action_url='/management/staff/',
+                    send_email=True,
+                    email_subject='New Staff Auto-Onboarded',
+                )
+            elif user.role == 'VISITOR':
+                create_notification(
+                    admin_user,
+                    title='New Visitor Signup',
+                    message=f'{user.get_full_name() or user.username} signed up as Visitor.',
+                    notification_type='INFO',
+                    action_url='/management/users/',
+                    send_email=True,
+                    email_subject='New Visitor Signup',
+                )
+
+        if user.email:
+            try:
+                send_email_verification(user, request)
+                messages.info(request, 'A verification link has been sent to your email.')
+            except Exception:
+                messages.warning(request, 'Verification email could not be sent right now. You can resend it after login.')
+
+        if user.email:
+            try:
+                html_content = render_to_string('core/emails/welcome_email.html', {
+                    'user_name': user.get_full_name() or user.username,
+                    'user_email': user.email,
+                    'user_role': user.get_role_display(),
+                    'login_time': timezone.now().strftime('%B %d, %Y at %I:%M %p'),
+                    'dashboard_url': request.build_absolute_uri('/dashboard/'),
+                })
+
+                email = EmailMultiAlternatives(
+                    subject='Welcome to e_socity',
+                    body='Welcome! Your account has been created successfully.',
+                    from_email=settings.EMAIL_HOST_USER,
+                    to=[user.email],
+                )
+                email.attach_alternative(html_content, "text/html")
+                email.send(fail_silently=False)
+            except Exception:
+                messages.warning(request, 'Account created but welcome email could not be sent.')
+
+        for key in ['signup_payload', 'signup_otp', 'signup_otp_expiry']:
+            request.session.pop(key, None)
+
+        messages.success(request, 'Account created successfully! Please login to continue.')
+        return redirect('login')
+
+    masked_email = payload.get('email', '')
+    if '@' in masked_email:
+        local, domain = masked_email.split('@', 1)
+        local = (local[:2] + '*' * max(len(local) - 2, 1)) if len(local) > 2 else (local[:1] + '*')
+        masked_email = f'{local}@{domain}'
+
+    return render(request, 'core/signup_otp_verify.html', {'masked_email': masked_email})
 
 def userLoginView(request):
     if request.user.is_authenticated:

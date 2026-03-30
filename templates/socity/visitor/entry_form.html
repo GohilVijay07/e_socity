@@ -1,6 +1,78 @@
 {% extends 'base.html' %}
-{% block title %}Visitor Entry{% endblock %}
+{% block title %}My Visitor Entries{% endblock %}
+
 {% block content %}
-<div class="container py-4"><div class="card p-4"><h3>Visitor entry processed successfully.</h3><p>Security staff can update exit details from the staff panel.</p></div></div>
+<div class="container py-4">
+	{% if visitor %}
+	<div class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+		<div>
+			<strong>Entry Registered:</strong> {{ visitor.visit_unit }} | {{ visitor.name }} | {{ visitor.purpose }}
+		</div>
+		<span class="badge text-bg-success">{{ visitor.get_status_display }}</span>
+	</div>
+	{% endif %}
+
+	<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+		<h3 class="mb-0">My Visitor Entries</h3>
+		<a href="{% url 'socity:visitor_registration' %}" class="btn btn-primary btn-sm">Register New Entry</a>
+	</div>
+
+	<div class="row g-3">
+		<div class="col-lg-8">
+			<div class="card shadow-sm">
+				<div class="card-body p-0">
+					<div class="table-responsive">
+						<table class="table table-striped mb-0">
+							<thead>
+								<tr>
+									<th>Unit</th>
+									<th>Purpose</th>
+									<th>In Time</th>
+									<th>Status</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for entry in recent_entries %}
+								<tr>
+									<td>{{ entry.visit_unit }}</td>
+									<td>{{ entry.purpose }}</td>
+									<td>{{ entry.in_time|date:'d M Y H:i' }}</td>
+									<td>{{ entry.get_status_display }}</td>
+								</tr>
+								{% empty %}
+								<tr>
+									<td colspan="4" class="text-center text-muted py-4">No entries found for your mobile number.</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-4">
+			<div class="card shadow-sm">
+				<div class="card-header bg-white">
+					<h6 class="mb-0">Latest Notices</h6>
+				</div>
+				<div class="card-body">
+					{% if recent_notices %}
+						<ul class="list-group list-group-flush">
+							{% for n in recent_notices %}
+							<li class="list-group-item px-0">
+								<div class="fw-semibold">{{ n.title }}</div>
+								<small class="text-muted">{{ n.posted_date|date:'d M Y' }}</small>
+							</li>
+							{% endfor %}
+						</ul>
+					{% else %}
+						<p class="text-muted mb-0">No notices available.</p>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 {% endblock %}
 

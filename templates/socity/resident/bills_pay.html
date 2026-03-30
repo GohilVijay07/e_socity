@@ -8,11 +8,22 @@
 		{% if bill.penalty and bill.penalty > 0 %}
 			<p>Penalty: <strong>{{ bill.penalty }}</strong></p>
 		{% endif %}
+		<p>Total Payable: <strong>{{ bill.amount|add:bill.penalty }}</strong></p>
 
 		<div class="d-flex flex-wrap gap-2 mb-3">
-			<form method="post" action="{% url 'socity:resident_stripe_checkout' bill.id %}">
+			{% if stripe_configured %}
+				<form method="post" action="{% url 'socity:resident_stripe_checkout' bill.id %}">
+					{% csrf_token %}
+					<button class="btn btn-primary" type="submit"><i class="bi bi-credit-card me-1"></i>Pay Online (Stripe)</button>
+				</form>
+			{% else %}
+				<a href="{% url 'socity:resident_demo_online_checkout' bill.id %}" class="btn btn-primary"><i class="bi bi-credit-card me-1"></i>Pay Online (Demo)</a>
+			{% endif %}
+
+			<form method="post">
 				{% csrf_token %}
-				<button class="btn btn-primary" type="submit"><i class="bi bi-credit-card me-1"></i>Pay Online (Stripe)</button>
+				<input type="hidden" name="quick_pay" value="1">
+				<button class="btn btn-success" type="submit"><i class="bi bi-check-circle me-1"></i>Quick Pay (Manual)</button>
 			</form>
 		</div>
 

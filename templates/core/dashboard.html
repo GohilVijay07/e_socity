@@ -96,6 +96,11 @@
                         <span class="title">Register Visit</span>
                         <span class="desc">Log your entry to the society</span>
                     </a>
+                    <a href="{% url 'socity:visitor_entry' %}" class="feature-card">
+                        <span class="icon">🧾</span>
+                        <span class="title">My Entries</span>
+                        <span class="desc">View your recent visitor entries</span>
+                    </a>
                 {% endif %}
             </div>
         </div>
@@ -131,6 +136,10 @@
                     <a href="{% url 'socity:visitor_registration' %}" class="action-item">
                         <span class="icon">📋</span>
                         <span>Register Visit</span>
+                    </a>
+                    <a href="{% url 'socity:visitor_entry' %}" class="action-item">
+                        <span class="icon">🧾</span>
+                        <span>My Entries</span>
                     </a>
                 {% endif %}
 
