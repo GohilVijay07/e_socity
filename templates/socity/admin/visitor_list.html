@@ -5,7 +5,7 @@
 
 <form method="get" class="row g-2 mb-3">
 	<div class="col-md-4">
-		<input type="text" class="form-control" name="search" value="{{ search_query }}" placeholder="Search by name or phone">
+		<input type="text" class="form-control" name="search" value="{{ search_query }}" placeholder="Search by name, phone, or email">
 	</div>
 	<div class="col-md-3">
 		<select name="status" class="form-select">
@@ -34,6 +34,7 @@
 			<tr>
 				<th>Name</th>
 				<th>Phone</th>
+				<th>Email</th>
 				<th>Unit</th>
 				<th>Entry</th>
 				<th>Exit</th>
@@ -47,6 +48,7 @@
 			<tr>
 				<td>{{ v.name }}</td>
 				<td>{{ v.phone }}</td>
+				<td>{{ v.email|default:'-' }}</td>
 				<td>{{ v.visit_unit }}</td>
 				<td>{{ v.in_time|date:'d M Y H:i' }}</td>
 				<td>{{ v.out_time|default:'-' }}</td>
@@ -55,7 +57,7 @@
 				<td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'socity:visitor_approval_action' v.id %}">Approve/Reject</a></td>
 			</tr>
 			{% empty %}
-			<tr><td colspan="8" class="text-center">No visitors.</td></tr>
+			<tr><td colspan="9" class="text-center">No visitors.</td></tr>
 			{% endfor %}
 		</tbody>
 	</table>

@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block body_class %}admin-page{% endblock %}
+
 {% block content %}
 <style>
     .admin-shell {
@@ -46,7 +48,8 @@
                 <div class="brand mb-3">Society Admin</div>
                 <nav class="admin-nav">
                     <a href="{% url 'socity:admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">Dashboard</a>
-                    <a href="{% url 'socity:user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">Users</a>
+                    <a href="{% url 'socity:user_list' %}" class="{% if request.resolver_match.url_name == 'user_list' and request.GET.role != 'VISITOR' %}active{% endif %}">Users</a>
+                    <a href="{% url 'socity:user_list' %}?role=VISITOR" class="{% if request.resolver_match.url_name == 'user_list' and request.GET.role == 'VISITOR' %}active{% endif %}">Visitor Users</a>
                     <a href="{% url 'socity:complaint_list' %}" class="{% if request.resolver_match.url_name == 'complaint_list' %}active{% endif %}">Complaints</a>
                     <a href="{% url 'socity:bill_list' %}" class="{% if request.resolver_match.url_name == 'bill_list' %}active{% endif %}">Bills</a>
                     <a href="{% url 'socity:notice_list' %}" class="{% if request.resolver_match.url_name == 'notice_list' %}active{% endif %}">Notices</a>

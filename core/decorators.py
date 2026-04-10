@@ -61,7 +61,8 @@ def admin_required(view_func):
             return redirect('login')
         
         if request.user.role != 'ADMIN':
-            _raise_forbidden('Only administrators can access this page.')
+            messages.error(request, 'Only administrators can access this page. Please login with an admin account.')
+            return redirect('dashboard')
         
         return view_func(request, *args, **kwargs)
     return wrapper

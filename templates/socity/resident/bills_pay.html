@@ -11,6 +11,10 @@
 		<p>Total Payable: <strong>{{ bill.amount|add:bill.penalty }}</strong></p>
 
 		<div class="d-flex flex-wrap gap-2 mb-3">
+			<a href="{% url 'socity:resident_upi_qr_checkout' bill.id %}" class="btn btn-dark">
+				<i class="bi bi-qr-code-scan me-1"></i>Pay via UPI / QR
+			</a>
+
 			{% if stripe_configured %}
 				<form method="post" action="{% url 'socity:resident_stripe_checkout' bill.id %}">
 					{% csrf_token %}

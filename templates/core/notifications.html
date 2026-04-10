@@ -13,14 +13,22 @@
 
     <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Notification filters">
         <a class="btn {% if notif_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=all">All</a>
-        {% if user.role == 'STAFF' %}
-            <a class="btn {% if notif_filter == 'staff' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=staff">Staff</a>
-        {% else %}
+        {% if 'complaint' in allowed_filters %}
             <a class="btn {% if notif_filter == 'complaint' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=complaint">Complaint</a>
+        {% endif %}
+        {% if 'billing' in allowed_filters %}
             <a class="btn {% if notif_filter == 'billing' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=billing">Billing</a>
+        {% endif %}
+        {% if 'visitor' in allowed_filters %}
             <a class="btn {% if notif_filter == 'visitor' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=visitor">Visitor</a>
+        {% endif %}
+        {% if 'amenity' in allowed_filters %}
             <a class="btn {% if notif_filter == 'amenity' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=amenity">Amenity</a>
+        {% endif %}
+        {% if 'staff' in allowed_filters %}
             <a class="btn {% if notif_filter == 'staff' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=staff">Staff</a>
+        {% endif %}
+        {% if 'account' in allowed_filters %}
             <a class="btn {% if notif_filter == 'account' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'notifications' %}?filter=account">Account</a>
         {% endif %}
     </div>

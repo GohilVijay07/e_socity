@@ -14,6 +14,8 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from datetime import timedelta
 import random
+import re
+from urllib.parse import quote_plus
 from .forms import UserSignupForm, UserLoginForm, UserProfileForm, ContactForm, StrictPasswordResetForm
 from .models import User, EmailVerificationToken, Notification
 from socity.models import Resident
@@ -31,6 +33,8 @@ def get_dashboard_route_for_user(user):
         if not hasattr(user, 'staff_profile'):
             return None
         return 'socity:staff_dashboard_login_redirect'
+    if user.role == 'VISITOR':
+        return 'socity:visitor_dashboard_login_redirect'
     return None
 
 # Create your views here.
@@ -136,7 +140,7 @@ def userSignupView(request):
                     'expiry_minutes': 10,
                 })
                 email_msg = EmailMultiAlternatives(
-                    subject='e-Socity Signup OTP',
+                    subject='eSociety Signup OTP',
                     body=f'Your signup OTP is {otp}. It is valid for 10 minutes.',
                     from_email=settings.EMAIL_HOST_USER,
                     to=[payload['email']],
@@ -190,7 +194,7 @@ def signup_otp_verify_view(request):
                     'expiry_minutes': 10,
                 })
                 email_msg = EmailMultiAlternatives(
-                    subject='e-Socity Signup OTP',
+                    subject='eSociety Signup OTP',
                     body=f'Your signup OTP is {otp}. It is valid for 10 minutes.',
                     from_email=settings.EMAIL_HOST_USER,
                     to=[payload.get('email')],
@@ -279,9 +283,12 @@ def signup_otp_verify_view(request):
                 create_notification(
                     admin_user,
                     title='New Visitor Signup',
-                    message=f'{user.get_full_name() or user.username} signed up as Visitor.',
+                    message=(
+                        f'{user.get_full_name() or user.username} '
+                        f'({user.email or user.username}) signed up as Visitor.'
+                    ),
                     notification_type='INFO',
-                    action_url='/management/users/',
+                    action_url='/management/users/?role=VISITOR',
                     send_email=True,
                     email_subject='New Visitor Signup',
                 )
@@ -304,7 +311,7 @@ def signup_otp_verify_view(request):
                 })
 
                 email = EmailMultiAlternatives(
-                    subject='Welcome to e_socity',
+                    subject='Welcome to eSociety',
                     body='Welcome! Your account has been created successfully.',
                     from_email=settings.EMAIL_HOST_USER,
                     to=[user.email],
@@ -430,7 +437,7 @@ def password_reset_otp_request_view(request):
                     'expiry_minutes': 10,
                 })
                 email_msg = EmailMultiAlternatives(
-                    subject='e_socity Password Reset OTP',
+                    subject='eSociety Password Reset OTP',
                     body=f'Your OTP is {otp}. It is valid for 10 minutes.',
                     from_email=settings.EMAIL_HOST_USER,
                     to=[email],
@@ -552,33 +559,40 @@ def notifications_view(request):
     filter_map = {
         'complaint': ['complaint'],
         'billing': ['bill', 'billing', 'payment'],
-        'visitor': ['visitor', 'entry', 'gate'],
+        'visitor': ['visitor', 'visit', 'entry', 'gate'],
         'amenity': ['amenity', 'booking'],
         'staff': ['staff', 'task', 'assigned'],
         'account': ['email', 'verification', 'password', 'account', 'profile'],
     }
+
+    role_filter_options = {
+        'ADMIN': ['all', 'complaint', 'billing', 'visitor', 'amenity', 'staff', 'account'],
+        'RESIDENT': ['all', 'complaint', 'billing', 'visitor', 'amenity', 'account'],
+        'STAFF': ['all', 'staff', 'complaint', 'account'],
+        'VISITOR': ['all', 'visitor', 'account'],
+    }
+    allowed_filters = role_filter_options.get(request.user.role, ['all'])
+
+    if notif_filter not in allowed_filters:
+        notif_filter = 'all'
 
     if notif_filter in filter_map:
         query = Q()
         for keyword in filter_map[notif_filter]:
             query |= Q(title__icontains=keyword) | Q(message__icontains=keyword)
         notifications_qs = notifications_qs.filter(query)
-    else:
-        notif_filter = 'all'
-
-    # Keep staff notification UX minimal: only All and Staff buckets.
-    if request.user.role == 'STAFF':
-        if notif_filter not in ['all', 'staff']:
-            notif_filter = 'all'
-        if notif_filter == 'staff':
-            staff_query = Q()
-            for keyword in filter_map['staff']:
-                staff_query |= Q(title__icontains=keyword) | Q(message__icontains=keyword)
-            notifications_qs = notifications_qs.filter(staff_query)
 
     paginator = Paginator(notifications_qs, 12)
     page_obj = paginator.get_page(request.GET.get('page', 1))
-    return render(request, 'core/notifications.html', {'page_obj': page_obj, 'notif_filter': notif_filter})
+    return render(
+        request,
+        'core/notifications.html',
+        {
+            'page_obj': page_obj,
+            'notif_filter': notif_filter,
+            'allowed_filters': allowed_filters,
+        },
+    )
 
 
 @login_required
@@ -588,6 +602,17 @@ def notification_read_view(request, notification_id):
     if request.method == 'POST':
         note.is_read = True
         note.save(update_fields=['is_read'])
+        if note.title == 'New Visitor Signup':
+            message = note.message or ''
+            email_match = re.search(r'\(([^()\s]+@[^()\s]+)\)', message)
+            if email_match:
+                return redirect(f"/management/users/?role=VISITOR&search={quote_plus(email_match.group(1))}")
+
+            name_part = message.split(' signed up as Visitor.')[0].strip()
+            if name_part:
+                return redirect(f"/management/users/?role=VISITOR&search={quote_plus(name_part)}")
+
+            return redirect('/management/users/?role=VISITOR')
         if note.action_url:
             return redirect(note.action_url)
     return redirect('notifications')

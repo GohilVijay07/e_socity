@@ -37,7 +37,7 @@ def send_email_verification(user, request):
 
     token = EmailVerificationToken.create_for_user(user)
     verify_link = request.build_absolute_uri(f"/core/email-verify/{token.token}/")
-    subject = 'Verify your e-Socity account email'
+    subject = 'Verify your eSociety account email'
     message = (
         f"Hello {user.get_full_name() or user.username},\n\n"
         f"Please verify your email by visiting this link:\n{verify_link}\n\n"

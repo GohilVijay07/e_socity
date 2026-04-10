@@ -1,78 +1,118 @@
 {% extends 'base.html' %}
+
+{% block body_class %}dashboard-page visitor-entries-page{% endblock %}
 {% block title %}My Visitor Entries{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-	{% if visitor %}
-	<div class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
-		<div>
-			<strong>Entry Registered:</strong> {{ visitor.visit_unit }} | {{ visitor.name }} | {{ visitor.purpose }}
-		</div>
-		<span class="badge text-bg-success">{{ visitor.get_status_display }}</span>
-	</div>
-	{% endif %}
+<div class="visitor-entries-shell py-4">
+    {% if visitor %}
+    <div class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+        <div>
+            <strong>Entry Registered:</strong> {{ visitor.visit_unit }} | {{ visitor.name }} | {{ visitor.purpose }}
+        </div>
+        <span class="badge text-bg-success">{{ visitor.get_approval_status_display }}</span>
+    </div>
+    {% endif %}
 
-	<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-		<h3 class="mb-0">My Visitor Entries</h3>
-		<a href="{% url 'socity:visitor_registration' %}" class="btn btn-primary btn-sm">Register New Entry</a>
-	</div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h3 class="mb-1">My Visitor Entries</h3>
+            <p class="text-muted mb-0">Use the dashboard for summary cards and recent activity. This page keeps your history and filters.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to Dashboard</a>
+            <a href="{% url 'socity:visitor_registration' %}" class="btn btn-primary btn-sm">Register New Entry</a>
+        </div>
+    </div>
 
-	<div class="row g-3">
-		<div class="col-lg-8">
-			<div class="card shadow-sm">
-				<div class="card-body p-0">
-					<div class="table-responsive">
-						<table class="table table-striped mb-0">
-							<thead>
-								<tr>
-									<th>Unit</th>
-									<th>Purpose</th>
-									<th>In Time</th>
-									<th>Status</th>
-								</tr>
-							</thead>
-							<tbody>
-								{% for entry in recent_entries %}
-								<tr>
-									<td>{{ entry.visit_unit }}</td>
-									<td>{{ entry.purpose }}</td>
-									<td>{{ entry.in_time|date:'d M Y H:i' }}</td>
-									<td>{{ entry.get_status_display }}</td>
-								</tr>
-								{% empty %}
-								<tr>
-									<td colspan="4" class="text-center text-muted py-4">No entries found for your mobile number.</td>
-								</tr>
-								{% endfor %}
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-		</div>
+    <div class="visitor-entries-header mb-3">
+        <div>
+            <h3 class="mb-1">My Visitor Entries</h3>
+            <p class="text-muted mb-0">Search and filter only your own entries here. Dashboard summary cards stay on the main dashboard.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Back to Dashboard</a>
+            <a href="{% url 'socity:visitor_registration' %}" class="btn btn-primary btn-sm">Register New Entry</a>
+        </div>
+    </div>
 
-		<div class="col-lg-4">
-			<div class="card shadow-sm">
-				<div class="card-header bg-white">
-					<h6 class="mb-0">Latest Notices</h6>
-				</div>
-				<div class="card-body">
-					{% if recent_notices %}
-						<ul class="list-group list-group-flush">
-							{% for n in recent_notices %}
-							<li class="list-group-item px-0">
-								<div class="fw-semibold">{{ n.title }}</div>
-								<small class="text-muted">{{ n.posted_date|date:'d M Y' }}</small>
-							</li>
-							{% endfor %}
-						</ul>
-					{% else %}
-						<p class="text-muted mb-0">No notices available.</p>
-					{% endif %}
-				</div>
-			</div>
-		</div>
-	</div>
+    <div class="card shadow-sm visitor-entries-card">
+        <div class="card-body p-3 p-md-4">
+            <form method="get" class="row g-3 align-items-end visitor-entries-filters mb-3">
+                <div class="col-12 col-md-5">
+                    <label class="form-label small text-muted">Search</label>
+                    <input type="text" class="form-control" name="search" value="{{ search_query }}" placeholder="Purpose, unit, phone">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted">Visit Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small text-muted">Approval</label>
+                    <select name="approval" class="form-select">
+                        <option value="">All</option>
+                        {% for value, label in approval_choices %}
+                            <option value="{{ value }}" {% if approval_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-1 d-grid">
+                    <button class="btn btn-outline-secondary" type="submit">Go</button>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle visitor-entry-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Approval</th>
+                            <th>Unit</th>
+                            <th>Purpose</th>
+                            <th>In Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in recent_entries %}
+                        <tr>
+                            <td>
+                                {% if entry.approval_status == 'APPROVED' %}
+                                    <span class="badge bg-success entry-badge">Approved</span>
+                                {% elif entry.approval_status == 'REJECTED' %}
+                                    <span class="badge bg-danger entry-badge">Rejected</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark entry-badge">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ entry.visit_unit }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ entry.purpose }}</div>
+                                <div class="text-muted small d-md-none">{{ entry.visit_unit }}</div>
+                            </td>
+                            <td>{{ entry.in_time|date:'d M Y H:i' }}</td>
+                            <td>
+                                {% if entry.status == 'IN' %}
+                                    <span class="badge bg-primary entry-badge">Inside</span>
+                                {% else %}
+                                    <span class="badge bg-secondary entry-badge">Exited</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No entries match your filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

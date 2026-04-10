@@ -25,7 +25,7 @@ class _AdminUserCreateMixin:
 class AdminUserCreateForm(UserCreationForm):
     """Admin form for creating any user and assigning role/active status."""
     role = forms.ChoiceField(
-        choices=[('ADMIN', 'Administrator'), ('RESIDENT', 'Resident'), ('STAFF', 'Security/Staff')],
+        choices=[('ADMIN', 'Administrator'), ('RESIDENT', 'Resident'), ('STAFF', 'Security/Staff'), ('VISITOR', 'Visitor')],
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     is_active = forms.BooleanField(required=False, initial=True, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
@@ -46,7 +46,7 @@ class AdminUserCreateForm(UserCreationForm):
 class AdminUserUpdateForm(forms.ModelForm):
     """Admin form for updating user profile and role."""
     role = forms.ChoiceField(
-        choices=[('ADMIN', 'Administrator'), ('RESIDENT', 'Resident'), ('STAFF', 'Security/Staff')],
+        choices=[('ADMIN', 'Administrator'), ('RESIDENT', 'Resident'), ('STAFF', 'Security/Staff'), ('VISITOR', 'Visitor')],
         widget=forms.Select(attrs={'class': 'form-control'})
     )
 
@@ -183,14 +183,45 @@ class MaintenanceBillForm(forms.ModelForm):
     """Form for admin to create/edit maintenance bills"""
     class Meta:
         model = MaintenanceBill
-        fields = ['unit', 'billing_month', 'amount', 'penalty', 'status']
+        fields = ['unit', 'billing_month', 'bill_date', 'amount', 'penalty', 'status']
         widgets = {
             'unit': forms.Select(attrs={'class': 'form-control'}),
             'billing_month': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'bill_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date', 'placeholder': 'Leave empty to use billing_month'}),
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Amount', 'step': '0.01'}),
             'penalty': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Penalty', 'step': '0.01'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
         }
+    
+    def clean(self):
+        """Validate that bill_date doesn't precede when the unit had residents."""
+        cleaned_data = super().clean()
+        unit = cleaned_data.get('unit')
+        bill_date = cleaned_data.get('bill_date')
+        billing_month = cleaned_data.get('billing_month')
+        
+        # If bill_date is not set, use billing_month as the effective date
+        effective_date = bill_date if bill_date else billing_month
+        
+        if effective_date and unit:
+            # Check if there's any resident for this unit at the effective date
+            from django.db.models import Q
+            from .models import Resident
+            
+            eligible_residents = Resident.objects.filter(
+                unit=unit,
+                move_in_date__lte=effective_date,
+            ).filter(
+                Q(move_out_date__isnull=True) | Q(move_out_date__gte=effective_date)
+            )
+            
+            if not eligible_residents.exists():
+                raise forms.ValidationError(
+                    f'No resident was living in {unit} on or before {effective_date.strftime("%Y-%m-%d")}. '
+                    'Bill date must align with when the unit had active residents.'
+                )
+        
+        return cleaned_data
 
 
 class NoticeForm(forms.ModelForm):
@@ -415,13 +446,27 @@ class VisitorRegistrationForm(forms.ModelForm):
     
     class Meta:
         model = Visitor
-        fields = ['name', 'phone', 'purpose', 'vehicle_no']
+        fields = ['name', 'phone', 'email', 'purpose', 'vehicle_no']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Visitor Name'}),
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone Number'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email (optional)'}),
             'purpose': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Purpose of Visit'}),
             'vehicle_no': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Vehicle Number (if any)'}),
         }
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get('phone') or '').strip()
+        normalized = ''.join(ch for ch in phone if ch.isdigit())
+        if len(normalized) < 10:
+            raise forms.ValidationError('Enter a valid phone number with at least 10 digits.')
+        return normalized
+
+    def clean_unit_no(self):
+        unit_no = (self.cleaned_data.get('unit_no') or '').strip()
+        if not unit_no:
+            raise forms.ValidationError('Unit / Flat Number is required.')
+        return unit_no
 
 
 class VisitorExitForm(forms.Form):

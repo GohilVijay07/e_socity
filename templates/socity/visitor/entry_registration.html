@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+
+{% block body_class %}dashboard-page visitor-dashboard-page{% endblock %}
 {% block title %}Visitor Registration{% endblock %}
 
 {% block content %}
@@ -26,6 +28,12 @@
 							<label class="form-label" for="{{ form.phone.id_for_label }}">Phone Number <span class="text-danger">*</span></label>
 							{{ form.phone }}
 							{% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors|join:', ' }}</div>{% endif %}
+						</div>
+
+						<div class="mb-3">
+							<label class="form-label" for="{{ form.email.id_for_label }}">Email (Optional)</label>
+							{{ form.email }}
+							{% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors|join:', ' }}</div>{% endif %}
 						</div>
 
 						<div class="mb-3">

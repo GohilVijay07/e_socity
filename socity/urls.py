@@ -7,7 +7,7 @@ from django.urls import path
 from . import views
 from .views import (
     # Dashboard
-    dashboard, admin_dashboard, resident_dashboard, staff_dashboard,
+    dashboard, admin_dashboard, resident_dashboard, staff_dashboard, visitor_dashboard,
     
     # Admin - Resident Management
     resident_list, resident_create, resident_detail, resident_edit, resident_delete,
@@ -40,6 +40,7 @@ from .views import (
     # Resident Features
     resident_bills_view, resident_payment_view, resident_bill_pdf_download,
     resident_stripe_checkout, resident_stripe_success, resident_demo_online_checkout,
+    resident_upi_qr_checkout,
     resident_complaint_list, resident_complaint_create, resident_complaint_detail,
     resident_amenities_view, resident_amenity_book, resident_booking_list, resident_booking_cancel,
     resident_notice_list, resident_notice_detail,
@@ -48,7 +49,7 @@ from .views import (
     
     # Staff Features
     staff_task_list, staff_task_update,
-    staff_complaint_list, staff_complaint_status_update,
+    staff_complaint_list, staff_complaint_status_update, staff_claim_complaint,
     staff_visitor_list, staff_visitor_entry, staff_visitor_exit,
     
     # Visitor Features
@@ -63,9 +64,11 @@ urlpatterns = [
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard_login_redirect'),
     path('resident-dashboard/', resident_dashboard, name='resident_dashboard_login_redirect'),
     path('staff-dashboard/', staff_dashboard, name='staff_dashboard_login_redirect'),
+    path('visitor-dashboard/', visitor_dashboard, name='visitor_dashboard_login_redirect'),
     path('management/dashboard/', admin_dashboard, name='admin_dashboard'),
     path('resident/dashboard/', resident_dashboard, name='resident_dashboard'),
     path('staff/dashboard/', staff_dashboard, name='staff_dashboard'),
+    path('visitor/dashboard/', visitor_dashboard, name='visitor_dashboard'),
     
     # ============= ADMIN URLS =============
 
@@ -148,6 +151,7 @@ urlpatterns = [
     # Bills & Payments
     path('resident/bills/', resident_bills_view, name='resident_bills'),
     path('resident/bills/<int:bill_id>/pay/', resident_payment_view, name='resident_payment'),
+    path('resident/bills/<int:bill_id>/pay/upi-qr/', resident_upi_qr_checkout, name='resident_upi_qr_checkout'),
     path('resident/bills/<int:bill_id>/stripe/checkout/', resident_stripe_checkout, name='resident_stripe_checkout'),
     path('resident/bills/<int:bill_id>/stripe/success/', resident_stripe_success, name='resident_stripe_success'),
     path('resident/bills/<int:bill_id>/online/demo/', resident_demo_online_checkout, name='resident_demo_online_checkout'),
@@ -181,6 +185,7 @@ urlpatterns = [
     
     # Complaints
     path('staff/complaints/', staff_complaint_list, name='staff_complaints'),
+    path('staff/complaints/<int:complaint_id>/claim/', staff_claim_complaint, name='staff_claim_complaint'),
     path('staff/complaints/<int:complaint_id>/status/', staff_complaint_status_update, name='staff_complaint_status'),
     
     # Visitor Management

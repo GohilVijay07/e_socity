@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block body_class %}dashboard-page{% if user_role == 'VISITOR' %} visitor-dashboard-page{% endif %}{% endblock %}
+
 {% block title %}Dashboard - eSociety Management{% endblock %}
 
 {% block content %}
@@ -10,9 +12,15 @@
     </div>
 
     <!-- Role-based Info Message -->
-    {% if user_role == 'VISITOR' %}
+    {% if user_role == 'VISITOR' and show_visitor_setup_success %}
+    <div style="background: #e8f5e9; border: 1px solid #81c784; border-radius: 8px; padding: 15px; margin-bottom: 20px; color: #1b5e20;">
+        <strong>✅ Setup Complete!</strong> Your visitor profile is ready. You can now register visits and track all your entries.
+    </div>
+    {% endif %}
+
+    {% if user_role == 'VISITOR' and show_visitor_info|default:False and not show_visitor_setup_success %}
     <div style="background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 15px; margin-bottom: 30px; color: #1565c0;">
-        <strong>👋 Welcome, Guest!</strong> As a visitor, you can register your visit, view society notices, and manage your profile. To access more features like bills, complaints, and amenity bookings, please contact the administration to upgrade to a Resident account.
+        <strong>👋 Welcome, Visitor!</strong> You can register your visit, track your entries, and manage your profile from this dashboard.
     </div>
     {% elif user_role == 'RESIDENT' %}
     <div style="background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; padding: 15px; margin-bottom: 30px; color: #512da8;">
@@ -21,6 +29,190 @@
     {% elif user_role == 'STAFF' %}
     <div style="background: #fff3e0; border: 1px solid #ffb74d; border-radius: 8px; padding: 15px; margin-bottom: 30px; color: #e65100;">
         <strong>👷 Welcome, Staff Member!</strong> Manage your assigned tasks and handle visitor registrations.
+    </div>
+    {% endif %}
+
+    {% if user_role == 'VISITOR' %}
+    <div class="visitor-dashboard-panel mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <h2 class="mb-1">Your Visit Overview</h2>
+                <p class="text-muted mb-0">Track your entry history, approval status, and active visit details from one place.</p>
+            </div>
+            <a href="{% url 'socity:visitor_registration' %}" class="btn btn-primary">Register Visit</a>
+        </div>
+
+        <div class="visitor-stats-grid mb-4">
+            <div class="visitor-stat-card">
+                <div class="visitor-stat-label">📋 Total Visits</div>
+                <div class="visitor-stat-value">{{ total_visits }}</div>
+            </div>
+            <div class="visitor-stat-card">
+                <div class="visitor-stat-label">✅ Approved</div>
+                <div class="visitor-stat-value">{{ approved_visits }}</div>
+            </div>
+            <div class="visitor-stat-card">
+                <div class="visitor-stat-label">⏳ Pending</div>
+                <div class="visitor-stat-value">{{ pending_visits }}</div>
+            </div>
+            <div class="visitor-stat-card">
+                <div class="visitor-stat-label">❌ Rejected</div>
+                <div class="visitor-stat-value">{{ rejected_visits }}</div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="card shadow-sm visitor-panel-card mb-3">
+                    <div class="card-body">
+                        <form method="get" class="row g-2 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label small text-muted">Search</label>
+                                <input type="text" class="form-control" name="search" value="{{ search_query }}" placeholder="Purpose, unit, phone">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Visit Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="">All</option>
+                                    {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Approval</label>
+                                <select name="approval" class="form-select">
+                                    <option value="">All</option>
+                                    {% for value, label in approval_choices %}
+                                        <option value="{{ value }}" {% if approval_filter == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-1 d-grid">
+                                <button class="btn btn-outline-secondary" type="submit">Go</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm visitor-panel-card">
+                    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h6 class="mb-0">Recent Entries</h6>
+                        <span class="text-muted small">Owner-only visibility</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 visitor-entry-table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Approval</th>
+                                        <th>Unit</th>
+                                        <th>Purpose</th>
+                                        <th>In Time</th>
+                                        <th>Visit Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in recent_entries %}
+                                    <tr>
+                                        <td>
+                                            {% if entry.approval_status == 'APPROVED' %}
+                                                <span class="badge bg-success entry-badge">Approved</span>
+                                            {% elif entry.approval_status == 'REJECTED' %}
+                                                <span class="badge bg-danger entry-badge">Rejected</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark entry-badge">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ entry.visit_unit }}</td>
+                                        <td>{{ entry.purpose }}</td>
+                                        <td>{{ entry.in_time|date:'d M Y H:i' }}</td>
+                                        <td>
+                                            {% if entry.status == 'IN' %}
+                                                <span class="badge bg-primary entry-badge">Inside</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary entry-badge">Exited</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">No entries match your filters yet.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm visitor-panel-card mb-3">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Upcoming Visit Details</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if upcoming_visit %}
+                            <div class="small text-muted mb-1">Latest Active Entry</div>
+                            <div class="fw-semibold">{{ upcoming_visit.visit_unit }} - {{ upcoming_visit.purpose }}</div>
+                            <div class="text-muted small">{{ upcoming_visit.in_time|date:'d M Y H:i' }}</div>
+                            <div class="mt-2">
+                                {% if upcoming_visit.approval_status == 'APPROVED' %}
+                                    <span class="badge bg-success entry-badge">Approved</span>
+                                {% elif upcoming_visit.approval_status == 'REJECTED' %}
+                                    <span class="badge bg-danger entry-badge">Rejected</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark entry-badge">Pending Approval</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted mb-0">No active or pending entries right now.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm visitor-panel-card mb-3">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Recent Activity</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_activity %}
+                            <ul class="list-group list-group-flush">
+                                {% for activity in recent_activity %}
+                                <li class="list-group-item px-0 visitor-activity-item">
+                                    <div class="fw-semibold">{{ activity.visit_unit }} - {{ activity.purpose }}</div>
+                                    <small class="text-muted">{{ activity.in_time|date:'d M Y H:i' }}</small>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted mb-0">No visitor activity yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm visitor-panel-card">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Latest Notices</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_notices %}
+                            <ul class="list-group list-group-flush">
+                                {% for n in recent_notices %}
+                                <li class="list-group-item px-0">
+                                    <div class="fw-semibold">{{ n.title }}</div>
+                                    <small class="text-muted">{{ n.posted_date|date:'d M Y' }}</small>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted mb-0">No notices available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     {% endif %}
 
