@@ -970,7 +970,11 @@ def bill_create(request):
     if request.method == 'POST':
         form = MaintenanceBillForm(request.POST)
         if form.is_valid():
-            bill = form.save()
+            bill = form.save(commit=False)
+            bill.is_auto_generated = True
+            if not bill.bill_date:
+                bill.bill_date = bill.billing_month
+            bill.save()
 
             residents = Resident.objects.filter(unit=bill.unit).select_related('user')
             for resident in residents:
@@ -1728,8 +1732,8 @@ def resident_upi_qr_checkout(request, bill_id):
         return redirect('socity:resident_bills')
 
     payable_amount = bill.amount + (bill.penalty or Decimal('0'))
-    payee_upi_id = getattr(settings, 'UPI_COLLECTOR_ID', 'society@upi')
-    payee_name = getattr(settings, 'UPI_COLLECTOR_NAME', 'e-Socity Maintenance')
+    payee_upi_id = getattr(settings, 'UPI_COLLECTOR_ID', 'gohilvijay53949@oksbi')
+    payee_name = getattr(settings, 'UPI_COLLECTOR_NAME', 'Vijay gohil')
     txn_note = f"Maintenance {bill.billing_month.strftime('%b %Y')} - Bill #{bill.id}"
 
     upi_params = {
@@ -2407,7 +2411,9 @@ def resident_visitor_list(request):
     except:
         return redirect('home')
     
-    visitors = Visitor.objects.filter(visit_unit=resident.unit).order_by('-in_time')
+    visitors = Visitor.objects.filter(visit_unit=resident.unit).only(
+        'name', 'phone', 'email', 'purpose', 'vehicle_no', 'status', 'in_time', 'out_time', 'visit_unit'
+    ).order_by('-in_time')
     return render(request, 'socity/resident/visitor_log.html', {'visitors': visitors})
 
 

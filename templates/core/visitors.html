@@ -15,6 +15,7 @@
             <thead>
                 <tr>
                     <th>Visitor Name</th>
+                    <th>Email</th>
                     <th>Entry Time</th>
                     <th>Exit Time</th>
                     <th>Purpose</th>
@@ -31,6 +32,7 @@
                             <small>{{ visitor.phone }}</small>
                         </div>
                     </td>
+                    <td data-label="Email">{{ visitor.email|default:'-' }}</td>
                     <td data-label="Entry Time">{{ visitor.in_time|date:"d M, Y H:i" }}</td>
                     <td data-label="Exit Time">
                         {% if visitor.out_time %}
@@ -201,6 +203,10 @@ tbody tr:hover {
         position: relative;
         border: none;
         border-bottom: 1px solid var(--border-color);
+    }
+
+    td[data-label="Visitor"] .visitor-info {
+        padding-right: 10px;
     }
 
     td:last-child {
