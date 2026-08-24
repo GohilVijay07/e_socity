@@ -2216,6 +2216,22 @@ def resident_complaint_create(request):
             complaint.assigned_to = staff_user
             complaint.save()
 
+            # Notify all admins of new complaint
+            admin_users = User.objects.filter(role='ADMIN', is_active=True)
+            for admin_user in admin_users:
+                create_notification(
+                    admin_user,
+                    title='New Complaint Filed',
+                    message=(
+                        f'New complaint "{complaint.title}" from {resident.user.get_full_name() or resident.user.username} '
+                        f'({resident.unit}). Category: {complaint.get_category_display()}'
+                    ),
+                    notification_type='INFO',
+                    action_url='/management/complaints/',
+                    send_email=True,
+                    email_subject='New Complaint Filed',
+                )
+
             if staff_user:
                 create_notification(
                     staff_user,
